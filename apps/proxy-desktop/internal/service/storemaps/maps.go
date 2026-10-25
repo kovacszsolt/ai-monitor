@@ -34,6 +34,14 @@ func Provider(p providers.Provider) domain.Provider {
 	}
 }
 
+func ModelRoutes(routes []routing.Route) []domain.ModelRoute {
+	out := make([]domain.ModelRoute, 0, len(routes))
+	for _, r := range routes {
+		out = append(out, ModelRoute(r))
+	}
+	return out
+}
+
 func ModelRoute(r routing.Route) domain.ModelRoute {
 	return domain.ModelRoute{
 		ID:                       r.ID,

@@ -51,10 +51,7 @@ func (s *Service) HourlyRequestCountByModel(tag, projectID string, days int, ran
 	if err != nil {
 		return nil, HourlySeriesMeta{}, err
 	}
-	priceByPublic := make(map[string]domain.ModelRoute, len(routes))
-	for _, route := range routes {
-		priceByPublic[route.PublicModelName] = storemaps.ModelRoute(route)
-	}
+	priceIndex := pricing.NewModelRoutePriceIndex(storemaps.ModelRoutes(routes))
 	meta := HourlySeriesMeta{
 		Days:       days,
 		RangeStart: strings.TrimSpace(rangeStart),
@@ -68,7 +65,7 @@ func (s *Service) HourlyRequestCountByModel(tag, projectID string, days int, ran
 	out := make([]HourlyModelPoint, 0, len(points))
 	for _, p := range points {
 		hp := HourlyModelPoint{Point: p}
-		if route, ok := priceByPublic[p.Model]; ok {
+		if route, ok := priceIndex.LookupByID(p.ModelRouteID); ok {
 			cost, has := pricing.ModelUsageTotalCostUSD(route, p.InputTokens, p.CachedInputTokens, p.OutputTokens)
 			hp.TotalCostUSD = cost
 			hp.HasTotalCost = has
@@ -91,12 +88,9 @@ func (s *Service) ModelUsageStats(tag, projectID string) ([]domain.ModelUsageSta
 	if err != nil {
 		return nil, err
 	}
-	priceByPublic := make(map[string]domain.ModelRoute, len(routes))
-	for _, route := range routes {
-		priceByPublic[route.PublicModelName] = storemaps.ModelRoute(route)
-	}
+	priceIndex := pricing.NewModelRoutePriceIndex(storemaps.ModelRoutes(routes))
 	for i := range items {
-		if route, ok := priceByPublic[items[i].Name]; ok {
+		if route, ok := priceIndex.LookupByID(items[i].ModelRouteID); ok {
 			cost, has := pricing.ModelUsageTotalCostUSD(route, items[i].InputTokens, items[i].CachedInputTokens, items[i].OutputTokens)
 			items[i].TotalCostUSD = cost
 			items[i].HasTotalCost = has

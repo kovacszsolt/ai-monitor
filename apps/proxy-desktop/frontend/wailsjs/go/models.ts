@@ -683,6 +683,7 @@ export namespace service {
 	}
 	export class HourlyModelRequestCountDTO {
 	    bucket_start: string;
+	    model_route_id: string;
 	    model: string;
 	    request_count: number;
 	    input_tokens: number;
@@ -700,6 +701,7 @@ export namespace service {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.bucket_start = source["bucket_start"];
+	        this.model_route_id = source["model_route_id"];
 	        this.model = source["model"];
 	        this.request_count = source["request_count"];
 	        this.input_tokens = source["input_tokens"];
@@ -783,8 +785,23 @@ export namespace service {
 	        this.updated_at = source["updated_at"];
 	    }
 	}
+	export class ModelRouteFilterOptionDTO {
+	    id: string;
+	    name: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ModelRouteFilterOptionDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	    }
+	}
 	export class ModelTokenTimePointDTO {
 	    bucket_start: string;
+	    model_route_id: string;
 	    model: string;
 	    input_tokens: number;
 	    output_tokens: number;
@@ -796,6 +813,7 @@ export namespace service {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.bucket_start = source["bucket_start"];
+	        this.model_route_id = source["model_route_id"];
 	        this.model = source["model"];
 	        this.input_tokens = source["input_tokens"];
 	        this.output_tokens = source["output_tokens"];
@@ -836,6 +854,7 @@ export namespace service {
 		}
 	}
 	export class ModelUsageStatsDTO {
+	    model_route_id: string;
 	    name: string;
 	    request_count: number;
 	    input_tokens: number;
@@ -853,6 +872,7 @@ export namespace service {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.model_route_id = source["model_route_id"];
 	        this.name = source["name"];
 	        this.request_count = source["request_count"];
 	        this.input_tokens = source["input_tokens"];
@@ -1140,6 +1160,40 @@ export namespace service {
 		    return a;
 		}
 	}
+	export class Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelRouteFilterOptionDTO_ {
+	    ok: boolean;
+	    data: ModelRouteFilterOptionDTO[];
+	    error?: ErrorDTO;
+	
+	    static createFrom(source: any = {}) {
+	        return new Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelRouteFilterOptionDTO_(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ok = source["ok"];
+	        this.data = this.convertValues(source["data"], ModelRouteFilterOptionDTO);
+	        this.error = this.convertValues(source["error"], ErrorDTO);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelUsageStatsDTO_ {
 	    ok: boolean;
 	    data: ModelUsageStatsDTO[];
@@ -1221,40 +1275,6 @@ export namespace service {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.ok = source["ok"];
 	        this.data = this.convertValues(source["data"], ProviderDTO);
-	        this.error = this.convertValues(source["error"], ErrorDTO);
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
-	}
-	export class Result___string_ {
-	    ok: boolean;
-	    data: string[];
-	    error?: ErrorDTO;
-	
-	    static createFrom(source: any = {}) {
-	        return new Result___string_(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.ok = source["ok"];
-	        this.data = source["data"];
 	        this.error = this.convertValues(source["error"], ErrorDTO);
 	    }
 	

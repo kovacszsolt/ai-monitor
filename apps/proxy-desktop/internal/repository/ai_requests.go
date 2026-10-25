@@ -23,13 +23,23 @@ const maxRequestTagLen = 256
 const NoTagLabel = "(no tag)"
 
 type AIRequestListFilter struct {
-	ProjectID      string
-	State          string
-	Tag            string
-	RequestedModel string
-	SortBy         string
-	SortDesc       bool
+	ProjectID    string
+	State        string
+	Tag          string
+	ModelRouteID string
+	SortBy       string
+	SortDesc     bool
 }
+
+// ModelRouteFilterOption is a distinct model route seen in request logs.
+type ModelRouteFilterOption struct {
+	ID   string
+	Name string
+}
+
+const modelRouteJoinSQL = `LEFT JOIN model_routes mr ON mr.id = r.model_route_id`
+
+const modelRouteDisplayNameSQL = `COALESCE(NULLIF(TRIM(mr.public_model_name), ''), '(unknown route)')`
 
 type AIRequests struct {
 	db *sql.DB
@@ -151,7 +161,8 @@ func (r *AIRequests) List(ctx context.Context, f AIRequestListFilter, limit, off
 			r.usage_status, r.request_bytes, r.response_bytes, COALESCE(r.error_type, ''), ` + tagExpr + `
 		FROM ai_requests r
 		LEFT JOIN projects p ON p.id = r.project_id
-		LEFT JOIN providers pr ON pr.id = r.provider_id` + where + `
+		LEFT JOIN providers pr ON pr.id = r.provider_id
+		` + modelRouteJoinSQL + where + `
 		ORDER BY ` + requestListOrderBy(f, r.hasAIRequestsColumn(ctx, "tag")) + `
 		LIMIT ? OFFSET ?`
 	listArgs := append(args, limit, offset)
@@ -176,7 +187,7 @@ func requestListOrderBy(f AIRequestListFilter, hasTagColumn bool) string {
 	cols := map[string]string{
 		"started":  "r.started_at",
 		"project":  "p.name",
-		"model":    "r.requested_model",
+		"model":    modelRouteDisplayNameSQL,
 		"state":    "r.request_state",
 		"input":    "r.input_tokens",
 		"cached":   "r.cached_input_tokens",
@@ -223,9 +234,9 @@ func buildRequestFilters(f AIRequestListFilter) (string, []interface{}) {
 			args = append(args, f.Tag)
 		}
 	}
-	if f.RequestedModel != "" {
-		clauses = append(clauses, "r.requested_model = ?")
-		args = append(args, f.RequestedModel)
+	if f.ModelRouteID != "" {
+		clauses = append(clauses, "r.model_route_id = ?")
+		args = append(args, f.ModelRouteID)
 	}
 	if len(clauses) == 0 {
 		return "", args
@@ -275,8 +286,12 @@ func (r *AIRequests) Dashboard(ctx context.Context) (domain.DashboardStats, erro
 	}
 
 	stats.TopModels, err = r.topNamed(ctx, `
-		SELECT requested_model, COUNT(*) FROM ai_requests
-		GROUP BY requested_model ORDER BY COUNT(*) DESC LIMIT 5`)
+		SELECT `+modelRouteDisplayNameSQL+`, COUNT(*)
+		FROM ai_requests r
+		`+modelRouteJoinSQL+`
+		WHERE TRIM(COALESCE(r.model_route_id, '')) != ''
+		GROUP BY r.model_route_id
+		ORDER BY COUNT(*) DESC LIMIT 5`)
 	if err != nil {
 		return domain.DashboardStats{}, err
 	}
@@ -314,30 +329,35 @@ func (r *AIRequests) ModelUsageStats(ctx context.Context, tag, projectID string)
 		tag = ""
 	}
 	filterSQL, filterArgs := analyticsFilterSQL(tag, projectID)
-	usage, err := r.usageGroupStatsWithArgs(ctx, `
-		SELECT r.requested_model,
+	usage, err := r.modelRouteUsageGroupStatsWithArgs(ctx, `
+		SELECT COALESCE(r.model_route_id, ''),
+			`+modelRouteDisplayNameSQL+`,
 			COUNT(*),
 			COALESCE(SUM(COALESCE(r.input_tokens, 0)), 0),
 			COALESCE(SUM(COALESCE(r.output_tokens, 0)), 0),
 			COALESCE(SUM(COALESCE(r.cached_input_tokens, 0)), 0)
 		FROM ai_requests r
-		WHERE 1=1`+filterSQL+`
-		GROUP BY r.requested_model
+		`+modelRouteJoinSQL+`
+		WHERE TRIM(COALESCE(r.model_route_id, '')) != ''`+filterSQL+`
+		GROUP BY r.model_route_id
 		ORDER BY COUNT(*) DESC
 		LIMIT 50`, filterArgs...)
 	if err != nil {
 		return nil, err
 	}
-	throughput, err := r.tokenThroughputWithArgs(ctx, `
-		SELECT r.requested_model,
+	throughput, err := r.modelRouteTokenThroughputWithArgs(ctx, `
+		SELECT COALESCE(r.model_route_id, ''),
+			`+modelRouteDisplayNameSQL+`,
 			COALESCE(SUM(COALESCE(r.input_tokens, 0)), 0),
 			COALESCE(SUM(COALESCE(r.output_tokens, 0)), 0),
 			COALESCE(SUM(COALESCE(r.cached_input_tokens, 0)), 0),
 			COALESCE(SUM(COALESCE(r.duration_ms, 0)), 0),
 			COALESCE(SUM(COALESCE(r.decode_duration_ms, 0)), 0)
 		FROM ai_requests r
-		WHERE r.duration_ms IS NOT NULL AND r.duration_ms > 0`+filterSQL+`
-		GROUP BY r.requested_model
+		`+modelRouteJoinSQL+`
+		WHERE TRIM(COALESCE(r.model_route_id, '')) != ''
+			AND r.duration_ms IS NOT NULL AND r.duration_ms > 0`+filterSQL+`
+		GROUP BY r.model_route_id
 		HAVING SUM(r.duration_ms) > 0
 		LIMIT 50`, filterArgs...)
 	if err != nil {
@@ -389,16 +409,19 @@ func (r *AIRequests) HourlyRequestCountByModel(ctx context.Context, tag, project
 
 	q := `
 		SELECT substr(r.started_at, 1, 13) || ':00:00Z',
-			r.requested_model,
+			COALESCE(r.model_route_id, ''),
+			` + modelRouteDisplayNameSQL + `,
 			COUNT(*),
 			COALESCE(SUM(COALESCE(r.input_tokens, 0)), 0),
 			COALESCE(SUM(COALESCE(r.cached_input_tokens, 0)), 0),
 			COALESCE(SUM(COALESCE(r.output_tokens, 0)), 0),
 			COALESCE(SUM(COALESCE(r.decode_duration_ms, 0)), 0)
 		FROM ai_requests r
-		WHERE r.started_at >= ? AND r.started_at < ?` + filterSQL + `
-		GROUP BY substr(r.started_at, 1, 13), r.requested_model
-		ORDER BY 1 ASC, 3 DESC`
+		` + modelRouteJoinSQL + `
+		WHERE TRIM(COALESCE(r.model_route_id, '')) != ''
+			AND r.started_at >= ? AND r.started_at < ?` + filterSQL + `
+		GROUP BY substr(r.started_at, 1, 13), r.model_route_id
+		ORDER BY 1 ASC, 4 DESC`
 
 	rows, err := r.db.QueryContext(ctx, q, args...)
 	if err != nil {
@@ -410,6 +433,7 @@ func (r *AIRequests) HourlyRequestCountByModel(ctx context.Context, tag, project
 		var p domain.HourlyModelRequestCount
 		if err := rows.Scan(
 			&p.BucketStart,
+			&p.ModelRouteID,
 			&p.Model,
 			&p.RequestCount,
 			&p.InputTokens,
@@ -445,13 +469,16 @@ func (r *AIRequests) ModelTokenUsageOverTime(ctx context.Context, tag string, da
 
 	q := `
 		SELECT substr(r.started_at, 1, 13) || ':00:00Z',
-			r.requested_model,
+			COALESCE(r.model_route_id, ''),
+			` + modelRouteDisplayNameSQL + `,
 			COALESCE(SUM(COALESCE(r.input_tokens, 0)), 0),
 			COALESCE(SUM(COALESCE(r.output_tokens, 0)), 0)
 		FROM ai_requests r
-		WHERE r.started_at >= ?` + tagSQL + `
-		GROUP BY substr(r.started_at, 1, 13), r.requested_model
-		ORDER BY 1 ASC, 2 ASC`
+		` + modelRouteJoinSQL + `
+		WHERE TRIM(COALESCE(r.model_route_id, '')) != ''
+			AND r.started_at >= ?` + tagSQL + `
+		GROUP BY substr(r.started_at, 1, 13), r.model_route_id
+		ORDER BY 1 ASC, 3 ASC`
 
 	rows, err := r.db.QueryContext(ctx, q, args...)
 	if err != nil {
@@ -461,7 +488,7 @@ func (r *AIRequests) ModelTokenUsageOverTime(ctx context.Context, tag string, da
 	var out []domain.ModelTokenTimePoint
 	for rows.Next() {
 		var p domain.ModelTokenTimePoint
-		if err := rows.Scan(&p.BucketStart, &p.Model, &p.InputTokens, &p.OutputTokens); err != nil {
+		if err := rows.Scan(&p.BucketStart, &p.ModelRouteID, &p.Model, &p.InputTokens, &p.OutputTokens); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
@@ -469,24 +496,26 @@ func (r *AIRequests) ModelTokenUsageOverTime(ctx context.Context, tag string, da
 	return out, rows.Err()
 }
 
-func (r *AIRequests) ListRequestedModelFilterOptions(ctx context.Context) ([]string, error) {
+func (r *AIRequests) ListModelRouteFilterOptions(ctx context.Context) ([]ModelRouteFilterOption, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT DISTINCT requested_model FROM ai_requests
-		WHERE TRIM(COALESCE(requested_model, '')) != ''
-		ORDER BY requested_model ASC`)
+		SELECT DISTINCT r.model_route_id, `+modelRouteDisplayNameSQL+`
+		FROM ai_requests r
+		`+modelRouteJoinSQL+`
+		WHERE TRIM(COALESCE(r.model_route_id, '')) != ''
+		ORDER BY 2 ASC`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var models []string
+	var out []ModelRouteFilterOption
 	for rows.Next() {
-		var m string
-		if err := rows.Scan(&m); err != nil {
+		var opt ModelRouteFilterOption
+		if err := rows.Scan(&opt.ID, &opt.Name); err != nil {
 			return nil, err
 		}
-		models = append(models, m)
+		out = append(out, opt)
 	}
-	return models, rows.Err()
+	return out, rows.Err()
 }
 
 func (r *AIRequests) ListTagFilterOptions(ctx context.Context) (enabled bool, tags []string, hasUntagged bool, err error) {
@@ -547,15 +576,39 @@ func (r *AIRequests) usageGroupStatsWithArgs(ctx context.Context, q string, args
 	return out, rows.Err()
 }
 
+func (r *AIRequests) modelRouteUsageGroupStatsWithArgs(ctx context.Context, q string, args ...interface{}) ([]domain.UsageGroupStats, error) {
+	rows, err := r.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.UsageGroupStats
+	for rows.Next() {
+		var g domain.UsageGroupStats
+		if err := rows.Scan(
+			&g.ModelRouteID,
+			&g.Name,
+			&g.RequestCount,
+			&g.InputTokens,
+			&g.OutputTokens,
+			&g.CachedInputTokens,
+		); err != nil {
+			return nil, err
+		}
+		out = append(out, g)
+	}
+	return out, rows.Err()
+}
+
 func mergeModelUsage(usage []domain.UsageGroupStats, throughput []domain.TokenThroughput) []domain.ModelUsageStats {
-	tpByName := make(map[string]domain.TokenThroughput, len(throughput))
+	tpByRouteID := make(map[string]domain.TokenThroughput, len(throughput))
 	for _, t := range throughput {
-		tpByName[t.Name] = t
+		tpByRouteID[t.ModelRouteID] = t
 	}
 	out := make([]domain.ModelUsageStats, 0, len(usage))
 	for _, u := range usage {
 		m := domain.ModelUsageStats{UsageGroupStats: u}
-		if t, ok := tpByName[u.Name]; ok {
+		if t, ok := tpByRouteID[u.ModelRouteID]; ok {
 			m.EffectiveTPS = t.EffectiveTPS
 			m.GenerationTPS = t.GenerationTPS
 			m.HasGenerationTPS = t.HasGenerationTPS
@@ -567,6 +620,38 @@ func mergeModelUsage(usage []domain.UsageGroupStats, throughput []domain.TokenTh
 
 func (r *AIRequests) tokenThroughput(ctx context.Context, q string) ([]domain.TokenThroughput, error) {
 	return r.tokenThroughputWithArgs(ctx, q)
+}
+
+func (r *AIRequests) modelRouteTokenThroughputWithArgs(ctx context.Context, q string, args ...interface{}) ([]domain.TokenThroughput, error) {
+	rows, err := r.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.TokenThroughput
+	for rows.Next() {
+		var t domain.TokenThroughput
+		if err := rows.Scan(
+			&t.ModelRouteID,
+			&t.Name,
+			&t.InputTokens,
+			&t.OutputTokens,
+			&t.CachedInputTokens,
+			&t.DurationMS,
+			&t.DecodeDurationMS,
+		); err != nil {
+			return nil, err
+		}
+		if t.DurationMS > 0 {
+			t.EffectiveTPS = float64(t.InputTokens+t.OutputTokens) / (float64(t.DurationMS) / 1000.0)
+		}
+		if t.DecodeDurationMS > 0 && t.OutputTokens > 0 {
+			t.GenerationTPS = float64(t.OutputTokens) / (float64(t.DecodeDurationMS) / 1000.0)
+			t.HasGenerationTPS = true
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
 }
 
 func (r *AIRequests) tokenThroughputWithArgs(ctx context.Context, q string, args ...interface{}) ([]domain.TokenThroughput, error) {

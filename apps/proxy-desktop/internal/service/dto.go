@@ -256,6 +256,11 @@ type TokenThroughputDTO struct {
 	HasGenerationTPS  bool    `json:"has_generation_tps"`
 }
 
+type ModelRouteFilterOptionDTO struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type UsageGroupStatsDTO struct {
 	Name              string `json:"name"`
 	RequestCount      int64  `json:"request_count"`
@@ -265,6 +270,7 @@ type UsageGroupStatsDTO struct {
 }
 
 type ModelUsageStatsDTO struct {
+	ModelRouteID      string  `json:"model_route_id"`
 	Name              string  `json:"name"`
 	RequestCount      int64   `json:"request_count"`
 	InputTokens       int64   `json:"input_tokens"`
@@ -279,6 +285,7 @@ type ModelUsageStatsDTO struct {
 
 type ModelTokenTimePointDTO struct {
 	BucketStart  string `json:"bucket_start"`
+	ModelRouteID string `json:"model_route_id"`
 	Model        string `json:"model"`
 	InputTokens  int64  `json:"input_tokens"`
 	OutputTokens int64  `json:"output_tokens"`
@@ -292,6 +299,7 @@ type ModelTokenTimeSeriesDTO struct {
 
 type HourlyModelRequestCountDTO struct {
 	BucketStart       string  `json:"bucket_start"`
+	ModelRouteID      string  `json:"model_route_id"`
 	Model             string  `json:"model"`
 	RequestCount      int64   `json:"request_count"`
 	InputTokens       int64   `json:"input_tokens"`
@@ -509,6 +517,7 @@ func mapUsageGroupStats(g domain.UsageGroupStats) UsageGroupStatsDTO {
 
 func mapModelUsageStats(m domain.ModelUsageStats) ModelUsageStatsDTO {
 	return ModelUsageStatsDTO{
+		ModelRouteID:      m.ModelRouteID,
 		Name:              m.Name,
 		RequestCount:      m.RequestCount,
 		InputTokens:       m.InputTokens,

@@ -47,6 +47,7 @@ type NamedCount struct {
 }
 
 type TokenThroughput struct {
+	ModelRouteID      string
 	Name              string
 	InputTokens       int64
 	OutputTokens      int64
@@ -60,6 +61,7 @@ type TokenThroughput struct {
 
 // UsageGroupStats aggregates request counts and token sums per label (proxy tag or model).
 type UsageGroupStats struct {
+	ModelRouteID      string
 	Name              string
 	RequestCount      int64
 	InputTokens       int64
@@ -80,6 +82,7 @@ type ModelUsageStats struct {
 // ModelTokenTimePoint is one hourly bucket for a model (tag-filtered queries).
 type ModelTokenTimePoint struct {
 	BucketStart  string
+	ModelRouteID string
 	Model        string
 	InputTokens  int64
 	OutputTokens int64
@@ -88,6 +91,7 @@ type ModelTokenTimePoint struct {
 // HourlyModelRequestCount is one UTC hour bucket for a public model (chart aggregates).
 type HourlyModelRequestCount struct {
 	BucketStart       string
+	ModelRouteID      string
 	Model             string
 	RequestCount      int64
 	InputTokens       int64

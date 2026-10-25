@@ -60,8 +60,15 @@ export async function listAIRequests({
   );
 }
 
+export type ModelRouteFilterOption = {
+  id: string;
+  name: string;
+};
+
 export async function listAIRequestModelOptions() {
-  return unwrap((await DesktopService.ListAIRequestModelOptions()) as ApiResult<string[]>);
+  return unwrap(
+    (await DesktopService.ListAIRequestModelOptions()) as ApiResult<ModelRouteFilterOption[]>,
+  );
 }
 
 export async function deleteAIRequest(id: string) {

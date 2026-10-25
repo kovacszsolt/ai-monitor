@@ -41,8 +41,12 @@ func ModelUsageTotalCostUSD(route domain.ModelRoute, inputTokens, cachedInputTok
 	if route.InputTokenUSDPer1M != nil {
 		cost += float64(uncached) * *route.InputTokenUSDPer1M / tokensPerMillion
 	}
-	if route.CachedInputTokenUSDPer1M != nil {
-		cost += float64(cachedInputTokens) * *route.CachedInputTokenUSDPer1M / tokensPerMillion
+	cachedUSDPer1M := route.CachedInputTokenUSDPer1M
+	if cachedUSDPer1M == nil {
+		cachedUSDPer1M = route.InputTokenUSDPer1M
+	}
+	if cachedUSDPer1M != nil {
+		cost += float64(cachedInputTokens) * *cachedUSDPer1M / tokensPerMillion
 	}
 	if route.OutputTokenUSDPer1M != nil {
 		cost += float64(outputTokens) * *route.OutputTokenUSDPer1M / tokensPerMillion

@@ -17,6 +17,7 @@ func (s *DesktopService) GetModelTokenUsageOverTime(tag string, days int) Result
 	for _, p := range points {
 		out.Points = append(out.Points, ModelTokenTimePointDTO{
 			BucketStart:  p.BucketStart,
+			ModelRouteID: p.ModelRouteID,
 			Model:        p.Model,
 			InputTokens:  p.InputTokens,
 			OutputTokens: p.OutputTokens,
@@ -41,6 +42,7 @@ func (s *DesktopService) GetHourlyRequestCountByModel(tag, projectID string, day
 		p := hp.Point
 		dto := HourlyModelRequestCountDTO{
 			BucketStart:       p.BucketStart,
+			ModelRouteID:      p.ModelRouteID,
 			Model:             p.Model,
 			RequestCount:      p.RequestCount,
 			InputTokens:       p.InputTokens,
@@ -112,12 +114,16 @@ func (s *DesktopService) BulkDeleteAIRequests(ids []string) Result[BulkDeleteAIR
 	return ok(BulkDeleteAIRequestResultDTO{Deleted: n})
 }
 
-func (s *DesktopService) ListAIRequestModelOptions() Result[[]string] {
-	models, err := s.airequests.ListRequestedModelFilterOptions()
+func (s *DesktopService) ListAIRequestModelOptions() Result[[]ModelRouteFilterOptionDTO] {
+	opts, err := s.airequests.ListModelRouteFilterOptions()
 	if err != nil {
-		return fail[[]string](err)
+		return fail[[]ModelRouteFilterOptionDTO](err)
 	}
-	return ok(models)
+	out := make([]ModelRouteFilterOptionDTO, 0, len(opts))
+	for _, o := range opts {
+		out = append(out, ModelRouteFilterOptionDTO{ID: o.ID, Name: o.Name})
+	}
+	return ok(out)
 }
 
 func (s *DesktopService) GetAIRequestContent(id string) Result[AIRequestContentDTO] {

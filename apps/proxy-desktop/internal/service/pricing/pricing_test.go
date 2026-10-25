@@ -44,6 +44,21 @@ func TestParseModelRouteTokenPricing(t *testing.T) {
 	}
 }
 
+func TestModelUsageTotalCostUSD_AllCachedFallsBackToInputPrice(t *testing.T) {
+	in, out := 2.5, 15.0
+	route := domain.ModelRoute{
+		InputTokenUSDPer1M:  &in,
+		OutputTokenUSDPer1M: &out,
+	}
+	cost, ok := ModelUsageTotalCostUSD(route, 1_000_000, 1_000_000, 0)
+	if !ok {
+		t.Fatal("expected has cost")
+	}
+	if cost != 2.5 {
+		t.Fatalf("cost = %v want 2.5", cost)
+	}
+}
+
 func TestModelUsageTotalCostUSD(t *testing.T) {
 	in, cached, out := 3.0, 0.75, 15.0
 	route := domain.ModelRoute{

@@ -33,7 +33,7 @@ func (s *Service) List(page, pageSize int, projectID, state, tag, model, sortBy 
 		ProjectID:      projectID,
 		State:          state,
 		Tag:            tag,
-		RequestedModel: model,
+		ModelRouteID: model,
 		SortBy:         sortBy,
 		SortDesc:       sortDesc,
 	}, pageSize, offset)
@@ -64,8 +64,8 @@ func (s *Service) BulkDelete(ids []string) (int64, error) {
 	return s.d.Requests.BulkDelete(s.d.Ctx(), ids)
 }
 
-func (s *Service) ListRequestedModelFilterOptions() ([]string, error) {
-	return s.d.Requests.ListRequestedModelFilterOptions(s.d.Ctx())
+func (s *Service) ListModelRouteFilterOptions() ([]repository.ModelRouteFilterOption, error) {
+	return s.d.Requests.ListModelRouteFilterOptions(s.d.Ctx())
 }
 
 func (s *Service) GetRequestContent(id string) (domain.AIRequestContent, error) {

@@ -179,7 +179,7 @@ export function RequestsPage() {
             >
               <option value="">All models</option>
               {(modelOptionsQ.data ?? []).map((m) => (
-                <option key={m} value={m}>{m}</option>
+                <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
           </label>

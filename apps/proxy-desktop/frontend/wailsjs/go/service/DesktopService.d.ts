@@ -49,7 +49,7 @@ export function GetSettings():Promise<service.Result_github_com_kovacszso_ai_mon
 
 export function GetStorageStats():Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_StorageStatsDTO_>;
 
-export function ListAIRequestModelOptions():Promise<service.Result___string_>;
+export function ListAIRequestModelOptions():Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelRouteFilterOptionDTO_>;
 
 export function ListAIRequestTagOptions():Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_AIRequestTagOptionsDTO_>;
 
