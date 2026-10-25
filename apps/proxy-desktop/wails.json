@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "ai-proxy-manager",
+  "outputfilename": "ai-proxy-manager",
+  "frontend:install": "pnpm install",
+  "frontend:build": "pnpm exec vite build",
+  "frontend:dev:watcher": "pnpm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Kovacs Zsolt",
+    "email": ""
+  }
+}

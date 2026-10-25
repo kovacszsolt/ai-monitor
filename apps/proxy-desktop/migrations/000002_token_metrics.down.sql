@@ -1,0 +1,9 @@
+ALTER TABLE ai_requests DROP COLUMN prompt_speed_estimated;
+ALTER TABLE ai_requests DROP COLUMN generation_speed_estimated;
+ALTER TABLE ai_requests DROP COLUMN cache_hit_rate;
+ALTER TABLE ai_requests DROP COLUMN effective_tps;
+ALTER TABLE ai_requests DROP COLUMN generation_tps;
+ALTER TABLE ai_requests DROP COLUMN prompt_tps;
+ALTER TABLE ai_requests DROP COLUMN decode_duration_ms;
+ALTER TABLE ai_requests DROP COLUMN prefill_duration_ms;
+ALTER TABLE ai_requests DROP COLUMN uncached_input_tokens;
