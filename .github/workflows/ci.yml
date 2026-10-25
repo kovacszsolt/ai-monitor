@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+defaults:
+  run:
+    working-directory: apps/proxy-desktop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/proxy-desktop/go.mod
+          cache-dependency-path: apps/proxy-desktop/go.sum
+
+      - name: Go test
+        run: go test ./...
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: apps/proxy-desktop/frontend/pnpm-lock.yaml
+
+      - name: Install and verify frontend
+        working-directory: apps/proxy-desktop/frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm run typecheck
+          pnpm run build

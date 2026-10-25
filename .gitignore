@@ -1,1 +1,10 @@
-data/db.sqlite3
+.DS_Store
+data/
+*.db
+
+apps/proxy-desktop/build/
+apps/proxy-desktop/node_modules/
+apps/proxy-desktop/frontend/dist/
+apps/proxy-desktop/frontend/node_modules/
+apps/proxy-desktop/config.yaml
+apps/proxy-desktop/proxy.bootstrap.yaml

@@ -1,0 +1,1 @@
+-- Data migration from legacy proxy_key_pepper is not reversed.
