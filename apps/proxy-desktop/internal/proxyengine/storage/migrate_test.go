@@ -29,4 +29,17 @@ func TestMigrateEmbedded(t *testing.T) {
 	if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='projects'`).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("projects table missing after migrate: %v n=%d", err, n)
 	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM providers`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 4 {
+		t.Fatalf("expected 4 default providers on fresh migrate, got %d", n)
+	}
+	var gs4URL string
+	if err := db.QueryRow(`SELECT base_url FROM providers WHERE name = 'GS4'`).Scan(&gs4URL); err != nil {
+		t.Fatal(err)
+	}
+	if gs4URL != "http://127.0.0.1:8003/v1" {
+		t.Fatalf("unexpected GS4 base_url: %q", gs4URL)
+	}
 }
