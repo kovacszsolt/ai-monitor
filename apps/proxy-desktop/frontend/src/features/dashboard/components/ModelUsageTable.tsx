@@ -1,7 +1,7 @@
 import { type MouseEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { formatNumber, formatOptionalTokensPerSec, formatUSD } from "@/lib/format";
+import { formatNumber, formatOptionalDuration, formatOptionalTokensPerSec, formatUSD } from "@/lib/format";
 import { ResizableColGroup } from "@/shared/table/ResizableColGroup";
 import { ResizableTableHead } from "@/shared/table/ResizableTableHead";
 import { resizableCellStyle, useResizableColumns } from "@/shared/table/useResizableColumns";
@@ -13,6 +13,8 @@ const GEN_TIP =
   "Generation throughput: sum(output tokens) ÷ sum(decode duration). Empty when decode timing was not captured.";
 const COST_TIP =
   "Estimated total USD from model route pricing (uncached input, cached input, output) × token sums. Set prices on the Models page.";
+const PROMPT_WINDOW_TIP =
+  "Wall time from the earliest request start to the latest request completion in this filter (not sum of per-request durations).";
 
 const MODEL_USAGE_COLUMNS: Record<string, number> = {
   model: 200,
@@ -22,6 +24,7 @@ const MODEL_USAGE_COLUMNS: Record<string, number> = {
   output: 88,
   cost: 104,
   gen: 96,
+  promptWindow: 112,
 };
 const MODEL_USAGE_COLUMN_IDS = Object.keys(MODEL_USAGE_COLUMNS);
 
@@ -88,6 +91,14 @@ export function ModelUsageTable({
             >
               Gen tok/s
             </ResizableTableHead>
+            <ResizableTableHead
+              width={colWidths.promptWindow}
+              onResizeStart={resizeCol("promptWindow")}
+              className="text-right"
+              title={PROMPT_WINDOW_TIP}
+            >
+              Prompt span
+            </ResizableTableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -131,6 +142,13 @@ export function ModelUsageTable({
                 style={resizableCellStyle(colWidths.gen)}
               >
                 {formatOptionalTokensPerSec(r.has_generation_tps, r.generation_tps)}
+              </TableCell>
+              <TableCell
+                className="truncate px-2 text-right font-mono text-xs text-muted-foreground"
+                style={resizableCellStyle(colWidths.promptWindow)}
+                title={PROMPT_WINDOW_TIP}
+              >
+                {formatOptionalDuration(r.has_prompt_window, r.prompt_window_ms)}
               </TableCell>
             </TableRow>
           ))}

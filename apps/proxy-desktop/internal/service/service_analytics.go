@@ -26,13 +26,14 @@ func (s *DesktopService) GetModelTokenUsageOverTime(tag string, days int) Result
 	return ok(out)
 }
 
-func (s *DesktopService) GetHourlyRequestCountByModel(tag, projectID string, days int, rangeStart, rangeEnd string) Result[HourlyModelRequestSeriesDTO] {
-	points, meta, err := s.analytics.HourlyRequestCountByModel(tag, projectID, days, rangeStart, rangeEnd)
+func (s *DesktopService) GetHourlyRequestCountByModel(tag, projectID string, days int, rangeStart, rangeEnd, bucketUnit string) Result[HourlyModelRequestSeriesDTO] {
+	points, meta, err := s.analytics.HourlyRequestCountByModel(tag, projectID, days, rangeStart, rangeEnd, bucketUnit)
 	if err != nil {
 		return fail[HourlyModelRequestSeriesDTO](err)
 	}
+	unit := string(repository.NormalizeChartBucketUnit(bucketUnit))
 	out := HourlyModelRequestSeriesDTO{
-		BucketUnit: "hour",
+		BucketUnit: unit,
 		Days:       meta.Days,
 		RangeStart: meta.RangeStart,
 		RangeEnd:   meta.RangeEnd,

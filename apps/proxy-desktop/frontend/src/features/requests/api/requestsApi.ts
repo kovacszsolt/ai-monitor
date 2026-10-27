@@ -113,6 +113,7 @@ export async function getHourlyRequestCountByModel(
   days = HOURLY_REQUEST_CHART_DAYS,
   rangeStart = "",
   rangeEnd = "",
+  bucketUnit = "hour",
 ) {
   return unwrap(
     (await DesktopService.GetHourlyRequestCountByModel(
@@ -121,6 +122,7 @@ export async function getHourlyRequestCountByModel(
       days,
       rangeStart,
       rangeEnd,
+      bucketUnit,
     )) as ApiResult<service.HourlyModelRequestSeriesDTO>,
   );
 }

@@ -112,6 +112,8 @@ export function DashboardPage() {
               onProjectChange={(projectID) => updateUsagePrefs({ projectID })}
               metric={usagePrefs.metric}
               onMetricChange={(metric) => updateUsagePrefs({ metric })}
+              bucket={usagePrefs.bucket}
+              onBucketChange={(bucket) => updateUsagePrefs({ bucket })}
               rangeMode={usagePrefs.rangeMode}
               onRangeModeChange={(rangeMode) => updateUsagePrefs({ rangeMode })}
               customRangeStart={usagePrefs.customRangeStart}

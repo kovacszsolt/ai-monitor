@@ -280,6 +280,7 @@ func (h *Handler) forward(w http.ResponseWriter, r *http.Request, expected routi
 			"http_status", resp.StatusCode,
 			"upstream_latency_ms", upLatency,
 		)
+		logDebugUpstreamRejectedRequest(r.Context(), upReq, rewritten, reqID)
 	}
 
 	var respBytes int64
@@ -524,6 +525,20 @@ func applyProviderAuth(p providers.Provider, req *http.Request) error {
 	case providers.TypeAnthropic:
 		req.Header.Set("x-api-key", key)
 		req.Header.Set("anthropic-version", "2023-06-01")
+	case providers.TypeBifrost:
+		if key == "" {
+			return fmt.Errorf("provider %q has no Bifrost virtual key configured", p.Name)
+		}
+		req.Header.Set("x-bf-vk", key)
+		if strings.HasPrefix(key, "sk-bf-") {
+			req.Header.Set("Authorization", "Bearer "+key)
+		}
+	case providers.TypeOpenAICompatible:
+		if key != "" {
+			req.Header.Set("Authorization", "Bearer "+key)
+			// Bifrost and similar gateways may require x-bf-vk even when Bearer is also set.
+			req.Header.Set("x-bf-vk", key)
+		}
 	default:
 		if key != "" {
 			req.Header.Set("Authorization", "Bearer "+key)

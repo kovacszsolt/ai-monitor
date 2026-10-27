@@ -27,7 +27,7 @@ import { PageShell } from "@/shared/components/PageShell";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/components/PageStates";
 import { service } from "../../../../wailsjs/go/models";
 
-const TYPES = ["openai", "anthropic", "openai-compatible"] as const;
+const TYPES = ["openai", "anthropic", "openai-compatible", "bifrost"] as const;
 
 export function ProvidersPage() {
   const qc = useQueryClient();
@@ -217,7 +217,9 @@ function FormFields(props: {
           placeholder={
             props.credentialOptional
               ? "Leave blank to keep the current key"
-              : "sk-… or upstream API key"
+              : props.providerType === "bifrost"
+                ? "Bifrost virtual key (x-bf-vk)"
+                : "sk-… or upstream API key"
           }
           className="font-mono text-xs"
           autoComplete="new-password"

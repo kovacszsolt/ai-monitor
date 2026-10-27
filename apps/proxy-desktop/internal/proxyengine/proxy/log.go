@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -110,6 +111,31 @@ func truncate(s string, max int) string {
 		return s
 	}
 	return s[:max] + "…"
+}
+
+// logDebugUpstreamRejectedRequest logs the full outbound provider request when logging level is debug.
+func logDebugUpstreamRejectedRequest(ctx context.Context, req *http.Request, body []byte, requestID string) {
+	if req == nil || !slog.Default().Enabled(ctx, slog.LevelDebug) {
+		return
+	}
+	slog.Debug("upstream rejected request — full outbound",
+		"request_id", requestID,
+		"method", req.Method,
+		"url", req.URL.String(),
+		"request_headers", httpHeaderMap(req.Header),
+		"request_body", string(body),
+	)
+}
+
+func httpHeaderMap(h http.Header) map[string]string {
+	if len(h) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(h))
+	for k, vals := range h {
+		out[k] = strings.Join(vals, ", ")
+	}
+	return out
 }
 
 func classifyUpstreamError(status int) string {

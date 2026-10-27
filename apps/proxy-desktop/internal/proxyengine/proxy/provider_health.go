@@ -28,7 +28,7 @@ func CheckProviderReachability(ctx context.Context, p providers.Provider) error 
 		if strings.TrimSpace(p.Credential) == "" && p.ProviderType == providers.TypeOpenAI {
 			return fmt.Errorf("API credential is not configured")
 		}
-	case providers.TypeAnthropic:
+	case providers.TypeAnthropic, providers.TypeBifrost:
 		if strings.TrimSpace(p.Credential) == "" {
 			return fmt.Errorf("API credential is not configured")
 		}

@@ -281,6 +281,8 @@ type ModelUsageStatsDTO struct {
 	EffectiveTPS      float64 `json:"effective_tps"`
 	GenerationTPS     float64 `json:"generation_tps"`
 	HasGenerationTPS  bool    `json:"has_generation_tps"`
+	PromptWindowMS    int64   `json:"prompt_window_ms"`
+	HasPromptWindow   bool    `json:"has_prompt_window"`
 }
 
 type ModelTokenTimePointDTO struct {
@@ -528,6 +530,8 @@ func mapModelUsageStats(m domain.ModelUsageStats) ModelUsageStatsDTO {
 		EffectiveTPS:      m.EffectiveTPS,
 		GenerationTPS:     m.GenerationTPS,
 		HasGenerationTPS:  m.HasGenerationTPS,
+		PromptWindowMS:    m.PromptWindowMS,
+		HasPromptWindow:   m.HasPromptWindow,
 	}
 }
 

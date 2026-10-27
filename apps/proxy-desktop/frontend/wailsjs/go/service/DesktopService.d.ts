@@ -35,7 +35,7 @@ export function GetConnectionInfo():Promise<service.ConnectionInfoDTO>;
 
 export function GetDashboardStats():Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_DashboardStatsDTO_>;
 
-export function GetHourlyRequestCountByModel(arg1:string,arg2:string,arg3:number,arg4:string,arg5:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_HourlyModelRequestSeriesDTO_>;
+export function GetHourlyRequestCountByModel(arg1:string,arg2:string,arg3:number,arg4:string,arg5:string,arg6:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_HourlyModelRequestSeriesDTO_>;
 
 export function GetModelTokenUsageOverTime(arg1:string,arg2:number):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelTokenTimeSeriesDTO_>;
 

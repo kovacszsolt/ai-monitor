@@ -35,7 +35,7 @@ export function HourlyChartRangePicker({
             key={preset.days}
             type="button"
             size="sm"
-            variant={mode === preset.days ? "default" : "ghost"}
+            variant={mode === preset.days ? "toggle" : "ghost"}
             className="h-8 px-3 text-xs"
             onClick={() => onModeChange(preset.days)}
           >
@@ -45,7 +45,7 @@ export function HourlyChartRangePicker({
         <Button
           type="button"
           size="sm"
-          variant={mode === "custom" ? "default" : "ghost"}
+          variant={mode === "custom" ? "toggle" : "ghost"}
           className="h-8 px-3 text-xs"
           onClick={() => onModeChange("custom")}
         >

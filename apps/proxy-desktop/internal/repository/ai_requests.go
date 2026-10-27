@@ -345,6 +345,19 @@ func (r *AIRequests) ModelUsageStats(ctx context.Context, tag, projectID string)
 	if err != nil {
 		return nil, err
 	}
+	windows, err := r.modelRoutePromptWindowWithArgs(ctx, `
+		SELECT COALESCE(r.model_route_id, ''),
+			MIN(r.started_at),
+			MAX(r.completed_at)
+		FROM ai_requests r
+		`+modelRouteJoinSQL+`
+		WHERE TRIM(COALESCE(r.model_route_id, '')) != ''
+			AND r.completed_at IS NOT NULL AND TRIM(r.completed_at) != ''`+filterSQL+`
+		GROUP BY r.model_route_id
+		LIMIT 50`, filterArgs...)
+	if err != nil {
+		return nil, err
+	}
 	throughput, err := r.modelRouteTokenThroughputWithArgs(ctx, `
 		SELECT COALESCE(r.model_route_id, ''),
 			`+modelRouteDisplayNameSQL+`,
@@ -363,7 +376,7 @@ func (r *AIRequests) ModelUsageStats(ctx context.Context, tag, projectID string)
 	if err != nil {
 		return nil, err
 	}
-	return mergeModelUsage(usage, throughput), nil
+	return mergeModelUsage(usage, throughput, windows), nil
 }
 
 func tagFilterAnd(tag string) (string, []interface{}) {
@@ -394,8 +407,8 @@ func analyticsFilterSQL(tag, projectID string) (string, []interface{}) {
 	return " AND " + strings.Join(parts, " AND "), args
 }
 
-// HourlyRequestCountByModel returns hourly aggregates per model for a rolling day window or custom UTC date range (YYYY-MM-DD).
-func (r *AIRequests) HourlyRequestCountByModel(ctx context.Context, tag, projectID string, days int, rangeStart, rangeEnd string) ([]domain.HourlyModelRequestCount, error) {
+// HourlyRequestCountByModel returns time-bucketed aggregates per model for a rolling day window or custom UTC date range (YYYY-MM-DD).
+func (r *AIRequests) HourlyRequestCountByModel(ctx context.Context, tag, projectID string, days int, rangeStart, rangeEnd, bucketUnit string) ([]domain.HourlyModelRequestCount, error) {
 	if tag != "" && !r.hasAIRequestsColumn(ctx, "tag") {
 		tag = ""
 	}
@@ -403,12 +416,17 @@ func (r *AIRequests) HourlyRequestCountByModel(ctx context.Context, tag, project
 	if err != nil {
 		return nil, err
 	}
+	unit := NormalizeChartBucketUnit(bucketUnit)
+	if err := validateChartBucketForBounds(unit, bounds); err != nil {
+		return nil, err
+	}
+	bucketSQL := chartBucketStartSQL(unit)
 	filterSQL, filterArgs := analyticsFilterSQL(tag, projectID)
 	args := []interface{}{bounds.Since, bounds.Until}
 	args = append(args, filterArgs...)
 
 	q := `
-		SELECT substr(r.started_at, 1, 13) || ':00:00Z',
+		SELECT ` + bucketSQL + `,
 			COALESCE(r.model_route_id, ''),
 			` + modelRouteDisplayNameSQL + `,
 			COUNT(*),
@@ -420,7 +438,7 @@ func (r *AIRequests) HourlyRequestCountByModel(ctx context.Context, tag, project
 		` + modelRouteJoinSQL + `
 		WHERE TRIM(COALESCE(r.model_route_id, '')) != ''
 			AND r.started_at >= ? AND r.started_at < ?` + filterSQL + `
-		GROUP BY substr(r.started_at, 1, 13), r.model_route_id
+		GROUP BY 1, r.model_route_id
 		ORDER BY 1 ASC, 4 DESC`
 
 	rows, err := r.db.QueryContext(ctx, q, args...)
@@ -600,10 +618,14 @@ func (r *AIRequests) modelRouteUsageGroupStatsWithArgs(ctx context.Context, q st
 	return out, rows.Err()
 }
 
-func mergeModelUsage(usage []domain.UsageGroupStats, throughput []domain.TokenThroughput) []domain.ModelUsageStats {
+func mergeModelUsage(usage []domain.UsageGroupStats, throughput []domain.TokenThroughput, windows []domain.ModelPromptWindow) []domain.ModelUsageStats {
 	tpByRouteID := make(map[string]domain.TokenThroughput, len(throughput))
 	for _, t := range throughput {
 		tpByRouteID[t.ModelRouteID] = t
+	}
+	winByRouteID := make(map[string]domain.ModelPromptWindow, len(windows))
+	for _, w := range windows {
+		winByRouteID[w.ModelRouteID] = w
 	}
 	out := make([]domain.ModelUsageStats, 0, len(usage))
 	for _, u := range usage {
@@ -613,9 +635,66 @@ func mergeModelUsage(usage []domain.UsageGroupStats, throughput []domain.TokenTh
 			m.GenerationTPS = t.GenerationTPS
 			m.HasGenerationTPS = t.HasGenerationTPS
 		}
+		if w, ok := winByRouteID[u.ModelRouteID]; ok {
+			m.PromptWindowMS = w.PromptWindowMS
+			m.HasPromptWindow = w.HasPromptWindow
+		}
 		out = append(out, m)
 	}
 	return out
+}
+
+func (r *AIRequests) modelRoutePromptWindowWithArgs(ctx context.Context, q string, args ...interface{}) ([]domain.ModelPromptWindow, error) {
+	rows, err := r.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.ModelPromptWindow
+	for rows.Next() {
+		var routeID string
+		var firstStarted, lastCompleted sql.NullString
+		if err := rows.Scan(&routeID, &firstStarted, &lastCompleted); err != nil {
+			return nil, err
+		}
+		ms, ok := promptWindowMS(firstStarted, lastCompleted)
+		out = append(out, domain.ModelPromptWindow{
+			ModelRouteID:    routeID,
+			PromptWindowMS:  ms,
+			HasPromptWindow: ok,
+		})
+	}
+	return out, rows.Err()
+}
+
+func promptWindowMS(firstStarted, lastCompleted sql.NullString) (int64, bool) {
+	if !firstStarted.Valid || !lastCompleted.Valid {
+		return 0, false
+	}
+	start, err := parseStoredTime(firstStarted.String)
+	if err != nil {
+		return 0, false
+	}
+	end, err := parseStoredTime(lastCompleted.String)
+	if err != nil {
+		return 0, false
+	}
+	if !end.After(start) {
+		return 0, false
+	}
+	return end.Sub(start).Milliseconds(), true
+}
+
+func parseStoredTime(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, fmt.Errorf("empty time")
+	}
+	t, err := time.Parse(time.RFC3339Nano, s)
+	if err == nil {
+		return t, nil
+	}
+	return time.Parse(time.RFC3339, s)
 }
 
 func (r *AIRequests) tokenThroughput(ctx context.Context, q string) ([]domain.TokenThroughput, error) {

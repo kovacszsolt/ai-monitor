@@ -12,7 +12,7 @@ storage:
   synchronous: NORMAL
 
 logging:
-  # info: request routing + errors; debug: successful proxy API key auth
+  # info: request routing + errors; debug: proxy API key auth + full upstream request (headers/body) when provider returns 4xx/5xx
   level: info
   # console = colored terminal (tint); json = structured logs for Docker/aggregators
   format: console

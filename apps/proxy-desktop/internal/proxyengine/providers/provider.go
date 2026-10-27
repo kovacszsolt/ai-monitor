@@ -19,6 +19,8 @@ const (
 	TypeOpenAI           Type = "openai"
 	TypeAnthropic        Type = "anthropic"
 	TypeOpenAICompatible Type = "openai-compatible"
+	// Bifrost gateway: virtual key must be sent via x-bf-vk (Bearer alone is not enough for legacy keys).
+	TypeBifrost Type = "bifrost"
 )
 
 type Provider struct {

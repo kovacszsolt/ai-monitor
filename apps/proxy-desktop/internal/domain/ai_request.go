@@ -77,6 +77,16 @@ type ModelUsageStats struct {
 	HasGenerationTPS bool
 	TotalCostUSD     float64
 	HasTotalCost     bool
+	// Wall time from earliest started_at to latest completed_at in the filtered request set.
+	PromptWindowMS  int64
+	HasPromptWindow bool
+}
+
+// ModelPromptWindow is per-route first/last request timestamps for prompt window aggregation.
+type ModelPromptWindow struct {
+	ModelRouteID    string
+	PromptWindowMS  int64
+	HasPromptWindow bool
 }
 
 // ModelTokenTimePoint is one hourly bucket for a model (tag-filtered queries).

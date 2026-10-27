@@ -19,6 +19,7 @@ const (
 	ProviderOpenAI           ProviderType = "openai"
 	ProviderAnthropic        ProviderType = "anthropic"
 	ProviderOpenAICompatible ProviderType = "openai-compatible"
+	ProviderBifrost          ProviderType = "bifrost"
 )
 
 type Provider struct {

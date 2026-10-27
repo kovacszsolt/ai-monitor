@@ -865,6 +865,8 @@ export namespace service {
 	    effective_tps: number;
 	    generation_tps: number;
 	    has_generation_tps: boolean;
+	    prompt_window_ms: number;
+	    has_prompt_window: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new ModelUsageStatsDTO(source);
@@ -883,6 +885,8 @@ export namespace service {
 	        this.effective_tps = source["effective_tps"];
 	        this.generation_tps = source["generation_tps"];
 	        this.has_generation_tps = source["has_generation_tps"];
+	        this.prompt_window_ms = source["prompt_window_ms"];
+	        this.has_prompt_window = source["has_prompt_window"];
 	    }
 	}
 	

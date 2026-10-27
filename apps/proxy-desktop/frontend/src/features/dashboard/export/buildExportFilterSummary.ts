@@ -1,4 +1,5 @@
 import type { DashboardLayoutUsagePrefs } from "@/features/dashboard/dashboardLayout";
+import { hourlyChartBucketLabel } from "@/features/dashboard/components/hourlyChartBucket";
 import { HOURLY_CHART_METRICS } from "@/features/dashboard/components/hourlyChartMetric";
 import { formatHourlyChartRangeLabel } from "@/features/dashboard/components/hourlyChartRange";
 
@@ -16,5 +17,6 @@ export function buildExportFilterSummary(
   );
   const project = projectLabel || "All projects";
   const tag = tagLabel || "All tags";
-  return `Layout filters: project ${project} · tag ${tag} · metric ${metricLabel} · ${rangeLabel}`;
+  const bucketLabel = hourlyChartBucketLabel(usagePrefs.bucket);
+  return `Layout filters: project ${project} · tag ${tag} · ${bucketLabel} · metric ${metricLabel} · ${rangeLabel}`;
 }

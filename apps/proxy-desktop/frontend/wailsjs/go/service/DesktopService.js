@@ -66,8 +66,8 @@ export function GetDashboardStats() {
   return window['go']['service']['DesktopService']['GetDashboardStats']();
 }
 
-export function GetHourlyRequestCountByModel(arg1, arg2, arg3, arg4, arg5) {
-  return window['go']['service']['DesktopService']['GetHourlyRequestCountByModel'](arg1, arg2, arg3, arg4, arg5);
+export function GetHourlyRequestCountByModel(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['service']['DesktopService']['GetHourlyRequestCountByModel'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
 export function GetModelTokenUsageOverTime(arg1, arg2) {
