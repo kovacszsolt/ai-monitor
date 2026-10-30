@@ -3,6 +3,7 @@ package content
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/kovacszso/ai-monitor/apps/proxy-desktop/internal/proxyengine/routing"
 )
@@ -20,6 +21,9 @@ func ExtractRequest(protocol routing.Protocol, body []byte, maxFieldBytes int64)
 	if err := json.Unmarshal(body, &loose); err != nil {
 		return PromptData{}, fmt.Errorf("invalid json body")
 	}
+	if protocol == routing.ProtocolOpenAIImages {
+		return extractOpenAIImagesRequest(loose, maxFieldBytes)
+	}
 	msgs := loose["messages"]
 	if msgs == nil && protocol == routing.ProtocolOpenAIResponses {
 		return extractOpenAIResponsesRequest(loose, maxFieldBytes)
@@ -28,6 +32,25 @@ func ExtractRequest(protocol routing.Protocol, body []byte, maxFieldBytes int64)
 		return PromptData{}, fmt.Errorf("messages missing")
 	}
 	return promptFromMessages(protocol, msgs, maxFieldBytes)
+}
+
+func extractOpenAIImagesRequest(loose map[string]interface{}, maxFieldBytes int64) (PromptData, error) {
+	prompt, _ := loose["prompt"].(string)
+	if strings.TrimSpace(prompt) == "" {
+		return PromptData{}, fmt.Errorf("prompt missing")
+	}
+	normalized := []map[string]string{{"role": "user", "content": prompt}}
+	raw, err := json.Marshal(normalized)
+	if err != nil {
+		return PromptData{}, err
+	}
+	messagesJSON, truncJSON := TruncateUTF8(string(raw), maxFieldBytes)
+	lastUser, truncUser := TruncateUTF8(prompt, maxFieldBytes)
+	return PromptData{
+		LastUserText:    lastUser,
+		MessagesJSON:    messagesJSON,
+		PromptTruncated: truncJSON || truncUser,
+	}, nil
 }
 
 func extractOpenAIResponsesRequest(loose map[string]interface{}, maxFieldBytes int64) (PromptData, error) {

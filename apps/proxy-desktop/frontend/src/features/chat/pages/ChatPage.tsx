@@ -13,6 +13,11 @@ import { ChatPinnedPromptsPanel } from "@/features/chat/components/ChatPinnedPro
 import { useChatPreferences } from "@/features/chat/hooks/useChatPreferences";
 import { useChatSessionPanelCollapsed } from "@/features/chat/hooks/useChatSessionPanelCollapsed";
 import { useChatSend } from "@/features/chat/hooks/useChatSend";
+import { getProxyVariables } from "@/features/settings/api/settingsApi";
+import {
+  maxChatImageFileBytesForRequestLimit,
+  type ChatImageAttachment,
+} from "@/features/chat/chatImageAttachment";
 import { listModelRoutes } from "@/features/models/api/modelsApi";
 import { getProxyStatus } from "@/features/proxy/api/proxyApi";
 import { listAPIKeys } from "@/features/projects/api/keysApi";
@@ -41,6 +46,11 @@ export function ChatPage() {
     queryFn: getProxyStatus,
     refetchInterval: 3000,
   });
+  const proxyVarsQ = useQuery({ queryKey: ["proxy-variables"], queryFn: getProxyVariables });
+  const maxImageFileBytes = useMemo(
+    () => maxChatImageFileBytesForRequestLimit(proxyVarsQ.data?.server_max_request_bytes ?? 0),
+    [proxyVarsQ.data?.server_max_request_bytes],
+  );
   const projectsQ = useQuery({ queryKey: ["projects"], queryFn: listProjects });
   const providersQ = useQuery({ queryKey: ["providers"], queryFn: listProviders });
   const modelsQ = useQuery({ queryKey: ["models"], queryFn: listModelRoutes });
@@ -145,18 +155,19 @@ export function ChatPage() {
 
   const proxyRunning = statusQ.data?.running ?? false;
 
+  const isImageGenModel = (selectedModel?.modality || "text-text") === "text-image";
   const chatSend = useChatSend({
     apiKeyId: selectedKey?.id,
     modelRouteId: selectedModel?.id,
-    stream: preferences.stream,
+    stream: isImageGenModel ? false : preferences.stream,
   });
 
   const pinsQ = useQuery({ queryKey: ["chat-pins"], queryFn: listChatPinnedPrompts });
 
   const sendMut = useMutation({
-    mutationFn: (text: string) => chatSend.sendUserMessage(text),
+    mutationFn: ({ text, images }: { text: string; images: ChatImageAttachment[] }) =>
+      chatSend.sendUserMessage(text, images),
     onError: (e: Error) => {
-      console.error("Chat send error", e);
       toast.error(e.message || "Chat request failed");
     },
   });
@@ -168,7 +179,6 @@ export function ChatPage() {
       qc.invalidateQueries({ queryKey: ["chat-pins"] });
     },
     onError: (e: Error) => {
-      console.error("Pin failed", e);
       toast.error(e.message);
     },
   });
@@ -180,7 +190,6 @@ export function ChatPage() {
       qc.invalidateQueries({ queryKey: ["chat-pins"] });
     },
     onError: (e: Error) => {
-      console.error("Unpin failed", e);
       toast.error(e.message);
     },
   });
@@ -243,7 +252,9 @@ export function ChatPage() {
         description={
           <>
             Messages go through the local proxy and are recorded under the selected project (tag{" "}
-            <code className="text-code-inline">desktop-chat</code>).
+            <code className="text-code-inline">desktop-chat</code>).{" "}
+            <code className="text-code-inline">text_image-text</code> allows image attach;{" "}
+            <code className="text-code-inline">text-image</code> generates images from the prompt.
           </>
         }
       />
@@ -336,7 +347,7 @@ export function ChatPage() {
             >
               {modelsForProvider.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.public_model_name} ({m.protocol})
+                  {m.public_model_name} ({m.modality || "text-text"} · {m.protocol})
                 </option>
               ))}
             </select>
@@ -344,10 +355,13 @@ export function ChatPage() {
           <div className="flex items-center gap-2 sm:col-span-2">
             <Switch
               id="chat-stream"
-              checked={preferences.stream}
+              checked={isImageGenModel ? false : preferences.stream}
+              disabled={isImageGenModel}
               onCheckedChange={(v) => setPreference("stream", v)}
             />
-            <Label htmlFor="chat-stream">Stream responses</Label>
+            <Label htmlFor="chat-stream">
+              Stream responses{isImageGenModel ? " (not available for text-image)" : ""}
+            </Label>
           </div>
         </CardContent>
         )}
@@ -358,7 +372,7 @@ export function ChatPage() {
           pins={pinsQ.data}
           isLoading={pinsQ.isLoading}
           runDisabled={composerDisabled}
-          onRun={(body) => sendMut.mutate(body)}
+          onRun={(body) => sendMut.mutate({ text: body, images: [] })}
           onUnpin={(id) => unpinMut.mutate(id)}
         />
         <Card className="flex min-h-0 flex-col">
@@ -385,7 +399,9 @@ export function ChatPage() {
             </div>
             <ChatComposer
               disabled={composerDisabled}
-              onSend={(text) => sendMut.mutateAsync(text)}
+              allowImageAttach={(selectedModel?.modality || "text-text") === "text_image-text"}
+              maxImageFileBytes={maxImageFileBytes}
+              onSend={(text, images) => sendMut.mutateAsync({ text, images })}
             />
           </CardContent>
         </Card>

@@ -61,7 +61,7 @@ func Default() Config {
 		Server: ServerConfig{
 			Host:            "127.0.0.1",
 			Port:            8080,
-			MaxRequestBytes: 10 * 1024 * 1024,
+			MaxRequestBytes: 64 * 1024 * 1024,
 		},
 		Storage: StorageConfig{
 			DatabasePath:  "./data/proxy.db",
@@ -148,6 +148,9 @@ func (c Config) Validate() error {
 	}
 	if c.Storage.DatabasePath == "" {
 		return fmt.Errorf("storage.database_path is required")
+	}
+	if c.Server.MaxRequestBytes < 1 {
+		return fmt.Errorf("server.max_request_bytes must be >= 1")
 	}
 	if c.Capture.Mode != "metadata" {
 		return fmt.Errorf("capture.mode must be metadata")

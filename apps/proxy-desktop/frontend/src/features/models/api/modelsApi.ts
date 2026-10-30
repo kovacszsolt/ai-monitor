@@ -11,6 +11,7 @@ export async function createModelRoute(
   providerID: string,
   upstream: string,
   protocol: string,
+  modality: string,
   inputTokenUSDPer1M: string,
   cachedInputTokenUSDPer1M: string,
   outputTokenUSDPer1M: string,
@@ -21,6 +22,7 @@ export async function createModelRoute(
       providerID,
       upstream,
       protocol,
+      modality,
       inputTokenUSDPer1M,
       cachedInputTokenUSDPer1M,
       outputTokenUSDPer1M,
@@ -32,6 +34,7 @@ export async function updateModelRoute(
   id: string,
   upstream: string,
   protocol: string,
+  modality: string,
   inputTokenUSDPer1M: string,
   cachedInputTokenUSDPer1M: string,
   outputTokenUSDPer1M: string,
@@ -41,6 +44,7 @@ export async function updateModelRoute(
       id,
       upstream,
       protocol,
+      modality,
       inputTokenUSDPer1M,
       cachedInputTokenUSDPer1M,
       outputTokenUSDPer1M,
@@ -50,4 +54,46 @@ export async function updateModelRoute(
 
 export async function setModelRouteEnabled(id: string, enabled: boolean) {
   return unwrap((await DesktopService.SetModelRouteEnabled(id, enabled)) as ApiResult<boolean>);
+}
+
+export type UpstreamModelOption = {
+  id: string;
+  alreadyImported: boolean;
+};
+
+export async function listProviderUpstreamModels(providerID: string) {
+  const rows = unwrap(
+    (await DesktopService.ListProviderUpstreamModels(providerID)) as ApiResult<
+      service.UpstreamModelDTO[]
+    >,
+  );
+  return rows.map(
+    (m): UpstreamModelOption => ({
+      id: m.id,
+      alreadyImported: m.already_imported,
+    }),
+  );
+}
+
+export type ImportModelRoutesResult = {
+  created: number;
+  skipped: string[];
+};
+
+export async function importModelRoutes(
+  providerID: string,
+  upstreamIDs: string[],
+  publicNamePrefix: string,
+): Promise<ImportModelRoutesResult> {
+  const r = unwrap(
+    (await DesktopService.ImportModelRoutes(
+      providerID,
+      upstreamIDs,
+      publicNamePrefix,
+    )) as ApiResult<service.ImportModelRoutesResultDTO>,
+  );
+  return {
+    created: r.created,
+    skipped: r.skipped ?? [],
+  };
 }

@@ -37,6 +37,7 @@ export const navGroups: NavGroup[] = [
     title: "System",
     items: [
       { to: "/proxy-variables", label: "Runtime Vars", icon: "tune" },
+      { to: "/errors", label: "Error log", icon: "bug_report" },
       { to: "/settings", label: "Settings", icon: "settings" },
       { to: "/about", label: "About", icon: "info" },
     ],

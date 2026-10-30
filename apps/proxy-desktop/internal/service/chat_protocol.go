@@ -12,9 +12,68 @@ func chatHTTPPath(protocol string) string {
 		return "/v1/messages"
 	case "openai_responses":
 		return "/v1/responses"
+	case "openai_images":
+		return "/v1/images/generations"
 	default:
 		return "/v1/chat/completions"
 	}
+}
+
+func lastUserTextPrompt(messages []ChatMessageDTO) string {
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Role != "user" {
+			continue
+		}
+		if t := strings.TrimSpace(messages[i].Content); t != "" {
+			return t
+		}
+	}
+	return ""
+}
+
+func buildImageGenerationBody(publicModel, prompt string) ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"model":           publicModel,
+		"prompt":          prompt,
+		"n":               1,
+		"response_format": "b64_json",
+	})
+}
+
+func extractImageGenerationResult(body []byte) (string, []ChatImageAttachmentDTO, error) {
+	var v map[string]interface{}
+	if err := json.Unmarshal(body, &v); err != nil {
+		return "", nil, fmt.Errorf("invalid response json: %w", err)
+	}
+	data, ok := v["data"].([]interface{})
+	if !ok || len(data) == 0 {
+		return "", nil, fmt.Errorf("empty image generation response")
+	}
+	images := make([]ChatImageAttachmentDTO, 0, len(data))
+	var revisedParts []string
+	for _, item := range data {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if revised, ok := m["revised_prompt"].(string); ok && strings.TrimSpace(revised) != "" {
+			revisedParts = append(revisedParts, strings.TrimSpace(revised))
+		}
+		if b64, ok := m["b64_json"].(string); ok && b64 != "" {
+			images = append(images, ChatImageAttachmentDTO{
+				MediaType: "image/png",
+				Data:      b64,
+			})
+			continue
+		}
+		if url, ok := m["url"].(string); ok && strings.TrimSpace(url) != "" {
+			return "", nil, fmt.Errorf("provider returned image URL only; request b64_json (response_format)")
+		}
+	}
+	if len(images) == 0 {
+		return "", nil, fmt.Errorf("no image data in generation response")
+	}
+	return strings.Join(revisedParts, "\n"), images, nil
 }
 
 func buildChatRequestBody(protocol, publicModel string, messages []ChatMessageDTO, stream bool) ([]byte, error) {
@@ -24,9 +83,12 @@ func buildChatRequestBody(protocol, publicModel string, messages []ChatMessageDT
 	case "openai_responses":
 		return json.Marshal(buildResponsesChatBody(publicModel, messages, stream))
 	default:
-		msgs := make([]map[string]string, 0, len(messages))
+		msgs := make([]map[string]interface{}, 0, len(messages))
 		for _, m := range messages {
-			msgs = append(msgs, map[string]string{"role": m.Role, "content": m.Content})
+			msgs = append(msgs, map[string]interface{}{
+				"role":    m.Role,
+				"content": openAIChatMessageContent(m),
+			})
 		}
 		return json.Marshal(map[string]interface{}{
 			"model":    publicModel,
@@ -36,15 +98,44 @@ func buildChatRequestBody(protocol, publicModel string, messages []ChatMessageDT
 	}
 }
 
+func openAIChatMessageContent(m ChatMessageDTO) interface{} {
+	if m.Role != "user" || len(m.Images) == 0 {
+		return m.Content
+	}
+	parts := make([]interface{}, 0, 1+len(m.Images))
+	if strings.TrimSpace(m.Content) != "" {
+		parts = append(parts, map[string]interface{}{
+			"type": "text",
+			"text": m.Content,
+		})
+	}
+	for _, img := range m.Images {
+		mt := normalizeImageMediaType(img.MediaType)
+		parts = append(parts, map[string]interface{}{
+			"type": "image_url",
+			"image_url": map[string]string{
+				"url": fmt.Sprintf("data:%s;base64,%s", mt, img.Data),
+			},
+		})
+	}
+	if len(parts) == 0 {
+		return m.Content
+	}
+	return parts
+}
+
 func buildAnthropicChatBody(publicModel string, messages []ChatMessageDTO, stream bool) map[string]interface{} {
 	var systemParts []string
-	convo := make([]map[string]string, 0, len(messages))
+	convo := make([]map[string]interface{}, 0, len(messages))
 	for _, m := range messages {
 		switch m.Role {
 		case "system":
 			systemParts = append(systemParts, m.Content)
 		case "user", "assistant":
-			convo = append(convo, map[string]string{"role": m.Role, "content": m.Content})
+			convo = append(convo, map[string]interface{}{
+				"role":    m.Role,
+				"content": anthropicMessageContent(m),
+			})
 		}
 	}
 	body := map[string]interface{}{
@@ -59,9 +150,36 @@ func buildAnthropicChatBody(publicModel string, messages []ChatMessageDTO, strea
 	return body
 }
 
+func anthropicMessageContent(m ChatMessageDTO) interface{} {
+	if m.Role != "user" || len(m.Images) == 0 {
+		return m.Content
+	}
+	blocks := make([]interface{}, 0, 1+len(m.Images))
+	if strings.TrimSpace(m.Content) != "" {
+		blocks = append(blocks, map[string]interface{}{
+			"type": "text",
+			"text": m.Content,
+		})
+	}
+	for _, img := range m.Images {
+		blocks = append(blocks, map[string]interface{}{
+			"type": "image",
+			"source": map[string]string{
+				"type":       "base64",
+				"media_type": normalizeImageMediaType(img.MediaType),
+				"data":       img.Data,
+			},
+		})
+	}
+	if len(blocks) == 0 {
+		return m.Content
+	}
+	return blocks
+}
+
 func buildResponsesChatBody(publicModel string, messages []ChatMessageDTO, stream bool) map[string]interface{} {
 	var instructions string
-	inputItems := make([]map[string]string, 0, len(messages))
+	inputItems := make([]map[string]interface{}, 0, len(messages))
 	for _, m := range messages {
 		switch m.Role {
 		case "system":
@@ -71,7 +189,10 @@ func buildResponsesChatBody(publicModel string, messages []ChatMessageDTO, strea
 				instructions += "\n\n" + m.Content
 			}
 		case "user", "assistant":
-			inputItems = append(inputItems, map[string]string{"role": m.Role, "content": m.Content})
+			inputItems = append(inputItems, map[string]interface{}{
+				"role":    m.Role,
+				"content": responsesMessageContent(m),
+			})
 		}
 	}
 	body := map[string]interface{}{
@@ -94,6 +215,38 @@ func buildResponsesChatBody(publicModel string, messages []ChatMessageDTO, strea
 		body["input"] = inputItems
 	}
 	return body
+}
+
+func responsesMessageContent(m ChatMessageDTO) interface{} {
+	if m.Role != "user" || len(m.Images) == 0 {
+		return m.Content
+	}
+	parts := make([]interface{}, 0, 1+len(m.Images))
+	if strings.TrimSpace(m.Content) != "" {
+		parts = append(parts, map[string]interface{}{
+			"type": "input_text",
+			"text": m.Content,
+		})
+	}
+	for _, img := range m.Images {
+		mt := normalizeImageMediaType(img.MediaType)
+		parts = append(parts, map[string]interface{}{
+			"type":      "input_image",
+			"image_url": fmt.Sprintf("data:%s;base64,%s", mt, img.Data),
+		})
+	}
+	if len(parts) == 0 {
+		return m.Content
+	}
+	return parts
+}
+
+func normalizeImageMediaType(mt string) string {
+	mt = strings.TrimSpace(mt)
+	if mt == "" {
+		return "image/jpeg"
+	}
+	return mt
 }
 
 func extractChatAssistantText(protocol string, body []byte) (string, error) {

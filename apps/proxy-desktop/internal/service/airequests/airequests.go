@@ -21,7 +21,7 @@ type ListResult struct {
 	PageSize int
 }
 
-func (s *Service) List(page, pageSize int, projectID, state, tag, model, sortBy string, sortDesc bool) (ListResult, error) {
+func (s *Service) List(page, pageSize int, projectID, state, tag, model, apiKeyID, sortBy string, sortDesc bool) (ListResult, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -30,12 +30,13 @@ func (s *Service) List(page, pageSize int, projectID, state, tag, model, sortBy 
 	}
 	offset := (page - 1) * pageSize
 	items, total, err := s.d.Requests.List(s.d.Ctx(), repository.AIRequestListFilter{
-		ProjectID:      projectID,
-		State:          state,
-		Tag:            tag,
-		ModelRouteID: model,
-		SortBy:         sortBy,
-		SortDesc:       sortDesc,
+		ProjectID:     projectID,
+		State:         state,
+		Tag:           tag,
+		ModelRouteID:  model,
+		ProxyAPIKeyID: apiKeyID,
+		SortBy:        sortBy,
+		SortDesc:      sortDesc,
 	}, pageSize, offset)
 	if err != nil {
 		return ListResult{}, err
@@ -66,6 +67,10 @@ func (s *Service) BulkDelete(ids []string) (int64, error) {
 
 func (s *Service) ListModelRouteFilterOptions() ([]repository.ModelRouteFilterOption, error) {
 	return s.d.Requests.ListModelRouteFilterOptions(s.d.Ctx())
+}
+
+func (s *Service) ListAPIKeyFilterOptions(projectID string) ([]repository.ModelRouteFilterOption, error) {
+	return s.d.Requests.ListAPIKeyFilterOptions(s.d.Ctx(), projectID)
 }
 
 func (s *Service) GetRequestContent(id string) (domain.AIRequestContent, error) {

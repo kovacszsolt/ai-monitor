@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import {
+  formatHourlyChartAxisValue,
   formatHourlyChartValue,
   hourlyPointValue,
   type HourlyChartMetric,
@@ -43,6 +44,55 @@ const MODEL_COLORS = [
 ] as const;
 
 const AXIS_TICK = { fontSize: 11, fill: CHART_TEXT };
+const CHART_MARGIN = { top: 8, right: 8, left: 4, bottom: 4 };
+
+function chartYAxisWidth(maxValue: number, formatTick: (n: number) => string): number {
+  if (!Number.isFinite(maxValue) || maxValue <= 0) {
+    return 44;
+  }
+  const samples = [maxValue, maxValue * 0.75, maxValue * 0.5, maxValue * 0.25, 0];
+  let maxChars = 0;
+  for (const v of samples) {
+    maxChars = Math.max(maxChars, formatTick(v).length);
+  }
+  return Math.min(88, Math.max(40, Math.ceil(maxChars * 6.5 + 12)));
+}
+
+function maxMetricBarTotal(rows: ChartRow[], seriesKeys: string[]): number {
+  let max = 0;
+  for (const row of rows) {
+    let sum = 0;
+    for (const key of seriesKeys) {
+      sum += Number(row[key] ?? 0);
+    }
+    if (sum > max) max = sum;
+  }
+  return max;
+}
+
+function maxMetricBarPeak(rows: ChartRow[], seriesKeys: string[]): number {
+  let max = 0;
+  for (const row of rows) {
+    for (const key of seriesKeys) {
+      max = Math.max(max, Number(row[key] ?? 0));
+    }
+  }
+  return max;
+}
+
+function maxTokenStackTotal(rows: ChartRow[], models: TokenModelStack[]): number {
+  let max = 0;
+  for (const row of rows) {
+    let sum = 0;
+    for (const m of models) {
+      for (const seg of TOKEN_STACK_SERIES) {
+        sum += Number(row[tokenStackDataKey(m.stackKey, seg.key)] ?? 0);
+      }
+    }
+    if (sum > max) max = sum;
+  }
+  return max;
+}
 
 type ChartRow = Record<string, number | string> & {
   bucket: string;
@@ -59,9 +109,30 @@ function shortModelName(name: string, max = 24): string {
   return `${name.slice(0, max - 1)}…`;
 }
 
-function formatHourLabel(bucketISO: string): string {
+function normalizeBucketUnit(raw: string | undefined): "minute" | "quarter" | "hour" | "day" {
+  switch (raw) {
+    case "minute":
+    case "quarter":
+    case "day":
+      return raw;
+    default:
+      return "hour";
+  }
+}
+
+function formatBucketLabel(bucketISO: string, unit: "minute" | "quarter" | "hour" | "day"): string {
   const d = new Date(bucketISO);
   if (Number.isNaN(d.getTime())) return bucketISO;
+  if (unit === "day") {
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  }
+  if (unit === "hour") {
+    return d.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+    });
+  }
   return d.toLocaleString(undefined, {
     month: "short",
     day: "numeric",
@@ -73,6 +144,7 @@ function formatHourLabel(bucketISO: string): string {
 function pivotHourlyTokensByModel(
   points: service.HourlyModelRequestCountDTO[],
   maxModels: number,
+  bucketUnit: "minute" | "quarter" | "hour" | "day",
 ): { rows: ChartRow[]; models: TokenModelStack[] } {
   const totals = new Map<string, number>();
   for (const p of points) {
@@ -108,7 +180,7 @@ function pivotHourlyTokensByModel(
       bucketOrder.push(p.bucket_start);
       bucketRows.set(p.bucket_start, {
         bucket: p.bucket_start,
-        hourLabel: formatHourLabel(p.bucket_start),
+        hourLabel: formatBucketLabel(p.bucket_start, bucketUnit),
       });
     }
     const row = bucketRows.get(p.bucket_start)!;
@@ -133,6 +205,7 @@ function pivotHourlyByMetric(
   points: service.HourlyModelRequestCountDTO[],
   maxModels: number,
   metric: Exclude<HourlyChartMetric, "tokens">,
+  bucketUnit: "minute" | "quarter" | "hour" | "day",
 ): { rows: ChartRow[]; series: { key: string; label: string; color: string }[] } {
   const totals = new Map<string, number>();
   for (const p of points) {
@@ -155,7 +228,7 @@ function pivotHourlyByMetric(
       bucketOrder.push(p.bucket_start);
       bucketRows.set(p.bucket_start, {
         bucket: p.bucket_start,
-        hourLabel: formatHourLabel(p.bucket_start),
+        hourLabel: formatBucketLabel(p.bucket_start, bucketUnit),
       });
     }
     const row = bucketRows.get(p.bucket_start)!;
@@ -334,12 +407,14 @@ export function HourlyRequestsByModelChart({
   rangeLabel: string;
   metric: HourlyChartMetric;
 }) {
+  const bucketUnit = normalizeBucketUnit(series?.bucket_unit);
+
   const tokenChart = useMemo(
     () =>
       metric === "tokens"
-        ? pivotHourlyTokensByModel(series?.points ?? [], MAX_MODEL_SERIES)
+        ? pivotHourlyTokensByModel(series?.points ?? [], MAX_MODEL_SERIES, bucketUnit)
         : null,
-    [series?.points, metric],
+    [series?.points, metric, bucketUnit],
   );
 
   const tokenModelLabels = useMemo(() => {
@@ -355,8 +430,8 @@ export function HourlyRequestsByModelChart({
     () =>
       metric === "tokens"
         ? null
-        : pivotHourlyByMetric(series?.points ?? [], MAX_MODEL_SERIES, metric),
-    [series?.points, metric],
+        : pivotHourlyByMetric(series?.points ?? [], MAX_MODEL_SERIES, metric, bucketUnit),
+    [series?.points, metric, bucketUnit],
   );
 
   if (!series || series.points.length === 0) {
@@ -377,12 +452,16 @@ export function HourlyRequestsByModelChart({
       );
     }
 
+    const tokenAxisFormat = (v: number) => formatHourlyChartAxisValue("tokens", v);
+    const tokenYMax = maxTokenStackTotal(tokenRows, tokenModels);
+    const tokenYAxisWidth = chartYAxisWidth(tokenYMax, tokenAxisFormat);
+
     return (
       <div className="recharts-chart-readable h-[min(50vh,22rem)] w-full min-h-[16rem]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={tokenRows}
-            margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
+            margin={CHART_MARGIN}
             barCategoryGap="12%"
             barGap={2}
           >
@@ -402,8 +481,8 @@ export function HourlyRequestsByModelChart({
               stroke={CHART_GRID}
               tickLine={{ stroke: CHART_AXIS }}
               axisLine={{ stroke: CHART_GRID }}
-              width={48}
-              tickFormatter={(v) => formatNumber(Number(v))}
+              width={tokenYAxisWidth}
+              tickFormatter={(v) => tokenAxisFormat(Number(v))}
             />
             <Tooltip
               content={(props) => (
@@ -455,12 +534,17 @@ export function HourlyRequestsByModelChart({
   }
 
   const stackBars = metric !== "generation_tps";
-  const yAxisWidth = metric === "cost" ? 52 : 44;
+  const axisFormat = (v: number) => formatHourlyChartAxisValue(metric, v);
+  const seriesKeys = modelSeries.map((s) => s.key);
+  const yMax = stackBars
+    ? maxMetricBarTotal(rows, seriesKeys)
+    : maxMetricBarPeak(rows, seriesKeys);
+  const yAxisWidth = chartYAxisWidth(yMax, axisFormat);
 
   return (
     <div className="recharts-chart-readable h-[min(50vh,22rem)] w-full min-h-[16rem]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+        <BarChart data={rows} margin={CHART_MARGIN}>
           <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" strokeOpacity={0.8} vertical={false} />
           <XAxis
             dataKey="hourLabel"
@@ -478,7 +562,7 @@ export function HourlyRequestsByModelChart({
             tickLine={{ stroke: CHART_AXIS }}
             axisLine={{ stroke: CHART_GRID }}
             width={yAxisWidth}
-            tickFormatter={(v) => formatHourlyChartValue(metric, Number(v))}
+            tickFormatter={(v) => axisFormat(Number(v))}
           />
           <Tooltip
             content={(props) => (

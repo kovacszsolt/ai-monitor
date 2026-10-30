@@ -15,6 +15,10 @@ func TestRequestListOrderBy(t *testing.T) {
 	if got != "r.started_at ASC, r.id ASC" {
 		t.Fatalf("tag without column: got %q", got)
 	}
+	got = requestListOrderBy(AIRequestListFilter{SortBy: "api_key", SortDesc: true}, true)
+	if got != apiKeyDisplayNameSQL+" DESC, r.id DESC" {
+		t.Fatalf("api_key: got %q", got)
+	}
 	got = requestListOrderBy(AIRequestListFilter{SortBy: "nope", SortDesc: false}, true)
 	if got != "r.started_at ASC, r.id ASC" {
 		t.Fatalf("default: got %q", got)

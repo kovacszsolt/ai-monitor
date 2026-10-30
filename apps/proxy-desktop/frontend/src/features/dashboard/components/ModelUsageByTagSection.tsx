@@ -8,6 +8,7 @@ import { useDashboardSectionCollapsed } from "@/features/dashboard/hooks/useDash
 import { ModelUsageTable } from "@/features/dashboard/components/ModelUsageTable";
 import { listProjects } from "@/features/projects/api/projectsApi";
 import { getModelUsageStats, listAIRequestTagOptions } from "@/features/requests/api/requestsApi";
+import { useApiKeyFilterOptions } from "@/features/requests/hooks/useApiKeyFilterOptions";
 import { ErrorState, LoadingState } from "@/shared/components/PageStates";
 
 const selectClassName =
@@ -18,12 +19,15 @@ type Props = {
   onTagChange: (tag: string) => void;
   projectID: string;
   onProjectChange: (projectID: string) => void;
+  apiKeyID: string;
+  onApiKeyChange: (apiKeyID: string) => void;
   hideFilters?: boolean;
 };
 
-function useModelUsageFilters(tag: string, projectID: string) {
+function useModelUsageFilters(tag: string, projectID: string, apiKeyID: string) {
   const tagOptionsQ = useQuery({ queryKey: ["request-tag-options"], queryFn: listAIRequestTagOptions });
   const projectsQ = useQuery({ queryKey: ["projects"], queryFn: listProjects });
+  const { options: apiKeyOptions } = useApiKeyFilterOptions(projectID);
 
   const tagLabel =
     tag === ""
@@ -37,14 +41,20 @@ function useModelUsageFilters(tag: string, projectID: string) {
       ? "all projects"
       : (projectsQ.data?.find((p) => p.id === projectID)?.name ?? projectID);
 
-  const filterSummary =
-    projectID === "" && tag === ""
-      ? "all requests"
-      : [projectID !== "" ? projectLabel : null, tag !== "" ? `tag ${tagLabel}` : null]
-          .filter(Boolean)
-          .join(", ");
+  const apiKeyLabel =
+    apiKeyID === ""
+      ? "all API keys"
+      : (apiKeyOptions.find((k) => k.id === apiKeyID)?.name ?? apiKeyID);
 
-  return { tagOptionsQ, projectsQ, tagLabel, projectLabel, filterSummary };
+  const filterParts = [
+    projectID !== "" ? projectLabel : null,
+    apiKeyID !== "" ? `API key ${apiKeyLabel}` : null,
+    tag !== "" ? `tag ${tagLabel}` : null,
+  ].filter(Boolean);
+
+  const filterSummary = filterParts.length === 0 ? "all requests" : filterParts.join(", ");
+
+  return { tagOptionsQ, projectsQ, apiKeyOptions, tagLabel, projectLabel, apiKeyLabel, filterSummary };
 }
 
 export function ModelUsageFilters({
@@ -52,15 +62,19 @@ export function ModelUsageFilters({
   onTagChange,
   projectID,
   onProjectChange,
+  apiKeyID,
+  onApiKeyChange,
   showTagFilter,
 }: {
   tag: string;
   onTagChange: (tag: string) => void;
   projectID: string;
   onProjectChange: (projectID: string) => void;
+  apiKeyID: string;
+  onApiKeyChange: (apiKeyID: string) => void;
   showTagFilter: boolean;
 }) {
-  const { tagOptionsQ, projectsQ } = useModelUsageFilters(tag, projectID);
+  const { tagOptionsQ, projectsQ, apiKeyOptions } = useModelUsageFilters(tag, projectID, apiKeyID);
   const activeProjects = useMemo(
     () => (projectsQ.data ?? []).filter((p) => p.enabled),
     [projectsQ.data],
@@ -71,6 +85,16 @@ export function ModelUsageFilters({
       onProjectChange("");
     }
   }, [projectID, activeProjects, onProjectChange]);
+
+  useEffect(() => {
+    onApiKeyChange("");
+  }, [projectID]);
+
+  useEffect(() => {
+    if (apiKeyID && !apiKeyOptions.some((k) => k.id === apiKeyID)) {
+      onApiKeyChange("");
+    }
+  }, [apiKeyID, apiKeyOptions, onApiKeyChange]);
 
   return (
     <div className="flex flex-wrap items-end gap-3">
@@ -84,6 +108,21 @@ export function ModelUsageFilters({
           <option value="">All projects</option>
           {activeProjects.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+        API key
+        <select
+          className={selectClassName}
+          value={apiKeyID}
+          onChange={(e) => onApiKeyChange(e.target.value)}
+          disabled={projectID === ""}
+          title={projectID === "" ? "Select a project to filter by API key" : undefined}
+        >
+          <option value="">{projectID === "" ? "Select project first" : "All API keys"}</option>
+          {apiKeyOptions.map((k) => (
+            <option key={k.id} value={k.id}>{k.name}</option>
           ))}
         </select>
       </label>
@@ -114,14 +153,16 @@ export function ModelUsageByTagSection({
   onTagChange,
   projectID,
   onProjectChange,
+  apiKeyID,
+  onApiKeyChange,
   hideFilters = false,
 }: Props) {
   const { collapsed, toggle } = useDashboardSectionCollapsed(DASHBOARD_SECTION_IDS.usageByModel);
-  const { tagOptionsQ, filterSummary } = useModelUsageFilters(tag, projectID);
+  const { tagOptionsQ, filterSummary } = useModelUsageFilters(tag, projectID, apiKeyID);
   const tagEnabled = tagOptionsQ.data?.enabled ?? false;
   const modelUsageQ = useQuery({
-    queryKey: ["model-usage-stats", tag, projectID],
-    queryFn: () => getModelUsageStats(tag, projectID),
+    queryKey: ["model-usage-stats", tag, projectID, apiKeyID],
+    queryFn: () => getModelUsageStats(tag, projectID, apiKeyID),
     enabled: !collapsed,
     refetchInterval: 30000,
   });
@@ -140,6 +181,8 @@ export function ModelUsageByTagSection({
               onTagChange={onTagChange}
               projectID={projectID}
               onProjectChange={onProjectChange}
+              apiKeyID={apiKeyID}
+              onApiKeyChange={onApiKeyChange}
               showTagFilter={false}
             />
           )}
@@ -171,6 +214,8 @@ export function ModelUsageByTagSection({
             onTagChange={onTagChange}
             projectID={projectID}
             onProjectChange={onProjectChange}
+            apiKeyID={apiKeyID}
+            onApiKeyChange={onApiKeyChange}
             showTagFilter
           />
         )}
@@ -194,15 +239,17 @@ export function ModelTokenUsageByTagChart({
   tag,
   tagLabel,
   projectID,
+  apiKeyID,
 }: {
   tag: string;
   tagLabel: string;
   projectID: string;
+  apiKeyID: string;
 }) {
   const { collapsed, toggle } = useDashboardSectionCollapsed(DASHBOARD_SECTION_IDS.tokenMixChart);
   const modelUsageQ = useQuery({
-    queryKey: ["model-usage-stats", tag, projectID],
-    queryFn: () => getModelUsageStats(tag, projectID),
+    queryKey: ["model-usage-stats", tag, projectID, apiKeyID],
+    queryFn: () => getModelUsageStats(tag, projectID, apiKeyID),
     enabled: tag !== "" && !collapsed,
     refetchInterval: 30000,
   });
@@ -237,4 +284,10 @@ export function useModelTagLabel(tag: string) {
   if (tag === "") return "all tags";
   if (tag === tagOptionsQ.data?.no_tag_label) return tagOptionsQ.data.no_tag_label;
   return tag;
+}
+
+export function useModelApiKeyLabel(apiKeyID: string, projectID: string) {
+  const { options } = useApiKeyFilterOptions(projectID);
+  if (apiKeyID === "") return "all API keys";
+  return options.find((k) => k.id === apiKeyID)?.name ?? apiKeyID;
 }

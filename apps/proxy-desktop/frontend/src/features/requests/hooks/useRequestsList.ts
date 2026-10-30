@@ -11,6 +11,7 @@ import {
   listAIRequests,
   type RequestSortColumn,
 } from "@/features/requests/api/requestsApi";
+import { useApiKeyFilterOptions } from "@/features/requests/hooks/useApiKeyFilterOptions";
 import { formatNumber } from "@/lib/format";
 import { service } from "../../../../wailsjs/go/models";
 
@@ -30,6 +31,7 @@ export function useRequestsList() {
   const [state, setState] = useState("");
   const [tag, setTag] = useState("");
   const [model, setModel] = useState("");
+  const [apiKeyID, setApiKeyID] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -42,9 +44,10 @@ export function useRequestsList() {
   const tagOptionsQ = useQuery({ queryKey: ["request-tag-options"], queryFn: listAIRequestTagOptions });
   const tagBulkEnabled = tagOptionsQ.data?.enabled ?? false;
   const modelOptionsQ = useQuery({ queryKey: ["request-model-options"], queryFn: listAIRequestModelOptions });
+  const apiKeyOptionsQ = useApiKeyFilterOptions(projectID);
 
   const listQ = useQuery({
-    queryKey: ["requests", page, projectID, state, tag, model, sortBy, sortDesc],
+    queryKey: ["requests", page, projectID, state, tag, model, apiKeyID, sortBy, sortDesc],
     queryFn: () =>
       listAIRequests({
         page,
@@ -53,14 +56,15 @@ export function useRequestsList() {
         state,
         tag,
         model,
+        apiKeyID,
         sortBy,
         sortDesc,
       }),
   });
 
   const listQueryKey = useMemo(
-    () => ["requests", page, projectID, state, tag, model, sortBy, sortDesc] as const,
-    [page, projectID, state, tag, model, sortBy, sortDesc],
+    () => ["requests", page, projectID, state, tag, model, apiKeyID, sortBy, sortDesc] as const,
+    [page, projectID, state, tag, model, apiKeyID, sortBy, sortDesc],
   );
 
   function sortDirection(column: RequestSortColumn): "asc" | "desc" | false {
@@ -77,7 +81,7 @@ export function useRequestsList() {
       return;
     }
     setSortBy(column);
-    setSortDesc(column !== "project" && column !== "model" && column !== "tag" && column !== "state");
+    setSortDesc(column !== "project" && column !== "model" && column !== "tag" && column !== "state" && column !== "api_key");
   }
 
   const deleteMut = useMutation({
@@ -103,6 +107,7 @@ export function useRequestsList() {
       void qc.invalidateQueries({ queryKey: ["requests"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["request-model-options"] });
+      qc.invalidateQueries({ queryKey: ["request-api-key-options"] });
       qc.invalidateQueries({ queryKey: ["request-tag-options"] });
       qc.invalidateQueries({ queryKey: ["model-usage-stats"] });
     },
@@ -131,7 +136,11 @@ export function useRequestsList() {
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [projectID, state, tag, model]);
+  }, [projectID, state, tag, model, apiKeyID]);
+
+  useEffect(() => {
+    setApiKeyID("");
+  }, [projectID]);
 
   const moveTagMut = useMutation({
     mutationFn: () => bulkSetAIRequestTag(Array.from(selectedIds), moveTag),
@@ -172,6 +181,7 @@ export function useRequestsList() {
       void qc.invalidateQueries({ queryKey: ["requests"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["request-model-options"] });
+      qc.invalidateQueries({ queryKey: ["request-api-key-options"] });
       qc.invalidateQueries({ queryKey: ["request-tag-options"] });
       qc.invalidateQueries({ queryKey: ["model-usage-stats"] });
     },
@@ -222,6 +232,8 @@ export function useRequestsList() {
     setTag,
     model,
     setModel,
+    apiKeyID,
+    setApiKeyID,
     expandedId,
     setExpandedId,
     deletingId,
@@ -237,6 +249,7 @@ export function useRequestsList() {
     tagOptionsQ,
     tagBulkEnabled,
     modelOptionsQ,
+    apiKeyOptionsQ,
     listQ,
     sortDirection,
     toggleSort,

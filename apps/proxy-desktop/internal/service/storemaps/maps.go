@@ -49,6 +49,7 @@ func ModelRoute(r routing.Route) domain.ModelRoute {
 		ProviderID:               r.ProviderID,
 		UpstreamModelName:        r.UpstreamModelName,
 		Protocol:                 domain.Protocol(r.Protocol),
+		Modality:                 domain.Modality(r.Modality),
 		Enabled:                  r.Enabled,
 		InputTokenUSDPer1M:       r.InputTokenUSDPer1M,
 		CachedInputTokenUSDPer1M: r.CachedInputTokenUSDPer1M,

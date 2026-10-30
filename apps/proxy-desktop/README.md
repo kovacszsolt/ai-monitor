@@ -17,7 +17,7 @@ The HTTP gateway and migrations live under `internal/proxyengine/` and `migratio
 
 | File | Purpose |
 |------|---------|
-| `config.yaml` | Desktop `storage.database_path` (`AI_PROXY_DESKTOP_*`) |
+| `config.yaml` | Desktop `storage.database_path` (empty → `~/.config/ai-proxy-manager/proxy.db`; override with `AI_PROXY_DESKTOP_DATABASE_PATH`) |
 | `proxy.bootstrap.yaml` | Optional seed for server/logging/capture (`AI_PROXY_CONFIG`, `AI_PROXY_*`) |
 | SQLite `settings` | Runtime server, logging, capture |
 

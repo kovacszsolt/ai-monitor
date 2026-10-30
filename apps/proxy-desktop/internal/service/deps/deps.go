@@ -24,8 +24,9 @@ type Desktop struct {
 	Providers *providers.Store
 	Routes   *routing.Store
 	Keys     *auth.KeyStore
-	Requests *repository.AIRequests
-	ChatPins *repository.ChatPinnedPrompts
+	Requests     *repository.AIRequests
+	ChatPins     *repository.ChatPinnedPrompts
+	ClientErrors *repository.ClientErrorLog
 
 	Ctx func() context.Context
 }
@@ -50,4 +51,5 @@ func (d *Desktop) RebindDB(db *sql.DB) {
 	d.Keys = auth.NewKeyStore(db)
 	d.Requests = repository.NewAIRequests(db)
 	d.ChatPins = repository.NewChatPinnedPrompts(db)
+	d.ClientErrors = repository.NewClientErrorLog(db)
 }

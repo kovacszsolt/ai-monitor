@@ -14,6 +14,14 @@ import {
   type HourlyChartRangeMode,
 } from "@/features/dashboard/components/hourlyChartRange";
 import { HourlyRequestsByModelChart } from "@/features/dashboard/components/HourlyRequestsByModelChart";
+import {
+  coerceBucketForRange,
+  HOURLY_CHART_BUCKET_OPTIONS,
+  hourlyChartBucketLabel,
+  rangeSpanDays,
+  usageVolumeSectionTitle,
+  type HourlyChartBucketUnit,
+} from "@/features/dashboard/components/hourlyChartBucket";
 import { HOURLY_CHART_METRICS, type HourlyChartMetric } from "@/features/dashboard/components/hourlyChartMetric";
 import { ModelUsageFilters } from "@/features/dashboard/components/ModelUsageByTagSection";
 import { getHourlyRequestCountByModel, listAIRequestTagOptions } from "@/features/requests/api/requestsApi";
@@ -24,8 +32,12 @@ type Props = {
   onTagChange: (tag: string) => void;
   projectID: string;
   onProjectChange: (projectID: string) => void;
+  apiKeyID: string;
+  onApiKeyChange: (apiKeyID: string) => void;
   metric: HourlyChartMetric;
   onMetricChange: (metric: HourlyChartMetric) => void;
+  bucket: HourlyChartBucketUnit;
+  onBucketChange: (bucket: HourlyChartBucketUnit) => void;
   rangeMode: HourlyChartRangeMode;
   onRangeModeChange: (mode: HourlyChartRangeMode) => void;
   customRangeStart: string;
@@ -39,8 +51,12 @@ export function DashboardRequestVolumeCard({
   onTagChange,
   projectID,
   onProjectChange,
+  apiKeyID,
+  onApiKeyChange,
   metric,
   onMetricChange,
+  bucket,
+  onBucketChange,
   rangeMode,
   onRangeModeChange,
   customRangeStart,
@@ -61,20 +77,31 @@ export function DashboardRequestVolumeCard({
     [rangeMode, customRangeStart, customRangeEnd],
   );
 
+  const spanDays = useMemo(
+    () => rangeSpanDays(rangeMode, customRangeStart, customRangeEnd),
+    [rangeMode, customRangeStart, customRangeEnd],
+  );
+  const effectiveBucket = useMemo(() => coerceBucketForRange(bucket, spanDays), [bucket, spanDays]);
+  const bucketCoerced = effectiveBucket !== bucket;
+
   const hourlyQ = useQuery({
     queryKey: [
       "hourly-requests-by-model",
       tag,
       projectID,
+      apiKeyID,
+      effectiveBucket,
       hourlyRangeQueryKeyPart(rangeMode, customRangeStart, customRangeEnd),
     ],
     queryFn: () =>
       getHourlyRequestCountByModel(
         tag,
         projectID,
+        apiKeyID,
         requestParams.days,
         requestParams.rangeStart,
         requestParams.rangeEnd,
+        effectiveBucket,
       ),
     enabled: rangeReady && !collapsed,
     refetchInterval: 30000,
@@ -90,7 +117,7 @@ export function DashboardRequestVolumeCard({
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
-        <CollapsibleCardHeader title="Usage by hour" collapsed={collapsed} onToggle={toggle} />
+        <CollapsibleCardHeader title={usageVolumeSectionTitle(bucket)} collapsed={collapsed} onToggle={toggle} />
       </CardHeader>
       {!collapsed && (
       <CardContent className="space-y-4">
@@ -100,15 +127,31 @@ export function DashboardRequestVolumeCard({
             onTagChange={onTagChange}
             projectID={projectID}
             onProjectChange={onProjectChange}
+            apiKeyID={apiKeyID}
+            onApiKeyChange={onApiKeyChange}
             showTagFilter={tagEnabled}
           />
+          <div className="flex flex-wrap gap-1 rounded-md border border-border p-0.5">
+            {HOURLY_CHART_BUCKET_OPTIONS.map((opt) => (
+              <Button
+                key={opt.id}
+                type="button"
+                size="sm"
+                variant={bucket === opt.id ? "toggle" : "ghost"}
+                className="h-8 px-3 text-xs"
+                onClick={() => onBucketChange(opt.id)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-1 rounded-md border border-border p-0.5">
             {HOURLY_CHART_METRICS.map((opt) => (
               <Button
                 key={opt.id}
                 type="button"
                 size="sm"
-                variant={metric === opt.id ? "default" : "ghost"}
+                variant={metric === opt.id ? "toggle" : "ghost"}
                 className="h-8 px-3 text-xs"
                 onClick={() => onMetricChange(opt.id)}
               >
@@ -129,6 +172,12 @@ export function DashboardRequestVolumeCard({
         </div>
         {!rangeReady && (
           <p className="text-sm text-muted-foreground">Choose a valid custom date range to load the chart.</p>
+        )}
+        {rangeReady && bucketCoerced && (
+          <p className="text-sm text-muted-foreground">
+            {hourlyChartBucketLabel(bucket)} is limited for this range; showing{" "}
+            {hourlyChartBucketLabel(effectiveBucket).toLowerCase()} instead.
+          </p>
         )}
         {rangeReady && hourlyQ.isLoading && <LoadingState label="Loading chart…" />}
         {rangeReady && hourlyQ.error && (

@@ -8,7 +8,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-on-primary hover:bg-primary/90 shadow-sm",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
+        /** Segmented / filter chips on dark surfaces — high contrast when selected */
+        toggle:
+          "bg-surface-bright text-on-surface shadow-sm ring-1 ring-primary/35 hover:bg-surface-container-highest",
         secondary:
           "bg-surface-container-high text-on-surface hover:bg-surface-bright shadow-sm",
         outline:
@@ -36,5 +39,5 @@ export interface ButtonProps
 
 export function Button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
   const Comp = asChild ? Slot : "button";
-  return <Comp className={cn(buttonVariants({ variant, size, className }))} {...props} />;
+  return <Comp className={cn(buttonVariants({ variant, size }), className)} {...props} />;
 }

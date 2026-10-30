@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,8 @@ export function ModelsPage() {
     setUpstream,
     protocol,
     setProtocol,
+    modality,
+    setModality,
     inputUSD,
     setInputUSD,
     cachedUSD,
@@ -61,6 +64,10 @@ export function ModelsPage() {
     openCreateDialog,
   } = useModelRoutesPage();
 
+  const importHref = providerFilter
+    ? `/models/import?provider=${encodeURIComponent(providerFilter)}`
+    : "/models/import";
+
   return (
     <PageShell>
       <PageHeader
@@ -69,9 +76,12 @@ export function ModelsPage() {
         title="Models"
         description="Public model aliases routed to upstream provider models."
         actions={
-          <Button onClick={openCreateDialog}>
-            Add model
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link to={importHref}>Import from provider</Link>
+            </Button>
+            <Button onClick={openCreateDialog}>Add model</Button>
+          </div>
         }
       />
     <Card>
@@ -137,6 +147,12 @@ export function ModelsPage() {
                   Protocol
                 </SortableTableHead>
                 <SortableTableHead
+                  sortDirection={sortDirection("modality")}
+                  onSortClick={() => toggleSort("modality")}
+                >
+                  Modality
+                </SortableTableHead>
+                <SortableTableHead
                   className="text-right"
                   sortDirection={sortDirection("inputUSD")}
                   onSortClick={() => toggleSort("inputUSD")}
@@ -173,6 +189,7 @@ export function ModelsPage() {
                   <TableCell>{m.provider_name || m.provider_id}</TableCell>
                   <TableCell className="font-mono text-xs">{m.upstream_model_name}</TableCell>
                   <TableCell><Badge variant="secondary">{m.protocol}</Badge></TableCell>
+                  <TableCell><Badge variant="secondary">{m.modality || "text-text"}</Badge></TableCell>
                   <TableCell className="text-right font-mono text-xs">{formatUSDPer1M(m.input_token_usd_per_1m)}</TableCell>
                   <TableCell className="text-right font-mono text-xs">{formatUSDPer1M(m.cached_input_token_usd_per_1m)}</TableCell>
                   <TableCell className="text-right font-mono text-xs">{formatUSDPer1M(m.output_token_usd_per_1m)}</TableCell>
@@ -197,6 +214,7 @@ export function ModelsPage() {
             providerID={providerID} setProviderID={setProviderID} providers={providers ?? []}
             upstream={upstream} setUpstream={setUpstream}
             protocol={protocol} setProtocol={setProtocol}
+            modality={modality} setModality={setModality}
             inputUSD={inputUSD} setInputUSD={setInputUSD}
             cachedUSD={cachedUSD} setCachedUSD={setCachedUSD}
             outputUSD={outputUSD} setOutputUSD={setOutputUSD}
@@ -219,6 +237,7 @@ export function ModelsPage() {
           <ModelRouteForm
             upstream={upstream} setUpstream={setUpstream}
             protocol={protocol} setProtocol={setProtocol}
+            modality={modality} setModality={setModality}
             inputUSD={inputUSD} setInputUSD={setInputUSD}
             cachedUSD={cachedUSD} setCachedUSD={setCachedUSD}
             outputUSD={outputUSD} setOutputUSD={setOutputUSD}

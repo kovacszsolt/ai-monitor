@@ -75,39 +75,25 @@ func applyEnv(cfg *Config) {
 	}
 }
 
-// ResolveDefaultDatabasePath walks up from cwd and the executable dir looking for data/proxy.db.
+// ResolveDefaultDatabasePath returns the standard per-user database location (~/.config/ai-proxy-manager/proxy.db).
+// Honors XDG_CONFIG_HOME when set.
 func ResolveDefaultDatabasePath() (string, error) {
-	if cwd, err := os.Getwd(); err == nil {
-		if p, ok := findProxyDBFrom(cwd); ok {
-			return p, nil
-		}
+	base, err := userConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve default database path: %w", err)
 	}
-	exe, err := os.Executable()
-	if err == nil {
-		if p, ok := findProxyDBFrom(filepath.Dir(exe)); ok {
-			return p, nil
-		}
-	}
-	return "", fmt.Errorf("could not find data/proxy.db; set storage.database_path or AI_PROXY_DESKTOP_DATABASE_PATH")
+	return filepath.Join(base, "ai-proxy-manager", "proxy.db"), nil
 }
 
-func findProxyDBFrom(start string) (string, bool) {
-	dir, err := filepath.Abs(start)
+func userConfigDir() (string, error) {
+	if v := strings.TrimSpace(os.Getenv("XDG_CONFIG_HOME")); v != "" {
+		return v, nil
+	}
+	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", false
+		return "", err
 	}
-	for i := 0; i < 12; i++ {
-		candidate := filepath.Join(dir, "data", "proxy.db")
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate, true
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-	return "", false
+	return filepath.Join(home, ".config"), nil
 }
 
 func IsUniqueConstraint(err error) bool {

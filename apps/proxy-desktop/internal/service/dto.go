@@ -114,12 +114,23 @@ type ModelRouteDTO struct {
 	ProviderName             string   `json:"provider_name,omitempty"`
 	UpstreamModelName        string   `json:"upstream_model_name"`
 	Protocol                 string   `json:"protocol"`
+	Modality                 string   `json:"modality"`
 	Enabled                  bool     `json:"enabled"`
 	InputTokenUSDPer1M       *float64 `json:"input_token_usd_per_1m,omitempty"`
 	CachedInputTokenUSDPer1M *float64 `json:"cached_input_token_usd_per_1m,omitempty"`
 	OutputTokenUSDPer1M      *float64 `json:"output_token_usd_per_1m,omitempty"`
 	CreatedAt                string   `json:"created_at"`
 	UpdatedAt                string   `json:"updated_at"`
+}
+
+type UpstreamModelDTO struct {
+	ID              string `json:"id"`
+	AlreadyImported bool   `json:"already_imported"`
+}
+
+type ImportModelRoutesResultDTO struct {
+	Created int      `json:"created"`
+	Skipped []string `json:"skipped"`
 }
 
 type APIKeyDTO struct {
@@ -141,10 +152,12 @@ type CreateAPIKeyResultDTO struct {
 }
 
 type AIRequestDTO struct {
-	ID             string `json:"id"`
-	ProjectID      string `json:"project_id"`
-	ProjectName    string `json:"project_name"`
-	ProviderID     string `json:"provider_id"`
+	ID              string `json:"id"`
+	ProjectID       string `json:"project_id"`
+	ProjectName     string `json:"project_name"`
+	ProxyAPIKeyID   string `json:"proxy_api_key_id"`
+	ProxyAPIKeyName string `json:"proxy_api_key_name"`
+	ProviderID      string `json:"provider_id"`
 	ProviderName   string `json:"provider_name"`
 	RequestedModel string `json:"requested_model"`
 	ActualModel    string `json:"actual_model,omitempty"`
@@ -281,6 +294,8 @@ type ModelUsageStatsDTO struct {
 	EffectiveTPS      float64 `json:"effective_tps"`
 	GenerationTPS     float64 `json:"generation_tps"`
 	HasGenerationTPS  bool    `json:"has_generation_tps"`
+	PromptWindowMS    int64   `json:"prompt_window_ms"`
+	HasPromptWindow   bool    `json:"has_prompt_window"`
 }
 
 type ModelTokenTimePointDTO struct {
@@ -376,6 +391,10 @@ func mapProvider(p domain.Provider) ProviderDTO {
 }
 
 func mapModelRoute(r domain.ModelRoute, providerName string) ModelRouteDTO {
+	modality := string(r.Modality)
+	if modality == "" {
+		modality = string(domain.ModalityTextText)
+	}
 	return ModelRouteDTO{
 		ID:                       r.ID,
 		PublicModelName:          r.PublicModelName,
@@ -383,6 +402,7 @@ func mapModelRoute(r domain.ModelRoute, providerName string) ModelRouteDTO {
 		ProviderName:             providerName,
 		UpstreamModelName:        r.UpstreamModelName,
 		Protocol:                 string(r.Protocol),
+		Modality:                 modality,
 		Enabled:                  r.Enabled,
 		InputTokenUSDPer1M:       r.InputTokenUSDPer1M,
 		CachedInputTokenUSDPer1M: r.CachedInputTokenUSDPer1M,
@@ -421,10 +441,12 @@ func mapAIRequestContent(c domain.AIRequestContent) AIRequestContentDTO {
 
 func mapAIRequest(r domain.AIRequest) AIRequestDTO {
 	dto := AIRequestDTO{
-		ID:             r.ID,
-		ProjectID:      r.ProjectID,
-		ProjectName:    r.ProjectName,
-		ProviderID:     r.ProviderID,
+		ID:              r.ID,
+		ProjectID:       r.ProjectID,
+		ProjectName:     r.ProjectName,
+		ProxyAPIKeyID:   r.ProxyAPIKeyID,
+		ProxyAPIKeyName: r.ProxyAPIKeyName,
+		ProviderID:      r.ProviderID,
 		ProviderName:   r.ProviderName,
 		RequestedModel: r.RequestedModel,
 		ActualModel:    r.ActualModel,
@@ -528,6 +550,8 @@ func mapModelUsageStats(m domain.ModelUsageStats) ModelUsageStatsDTO {
 		EffectiveTPS:      m.EffectiveTPS,
 		GenerationTPS:     m.GenerationTPS,
 		HasGenerationTPS:  m.HasGenerationTPS,
+		PromptWindowMS:    m.PromptWindowMS,
+		HasPromptWindow:   m.HasPromptWindow,
 	}
 }
 

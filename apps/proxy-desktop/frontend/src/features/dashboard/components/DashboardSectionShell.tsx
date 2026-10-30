@@ -77,7 +77,7 @@ export function DashboardSectionShell({
             <Button
               type="button"
               size="sm"
-              variant={width === "third" ? "default" : "ghost"}
+              variant={width === "third" ? "toggle" : "ghost"}
               className="h-7 gap-1 px-2 text-xs"
               onClick={() => onSetWidth("third")}
               aria-label="One-third width"
@@ -90,7 +90,7 @@ export function DashboardSectionShell({
             <Button
               type="button"
               size="sm"
-              variant={width === "half" ? "default" : "ghost"}
+              variant={width === "half" ? "toggle" : "ghost"}
               className="h-7 gap-1 px-2 text-xs"
               onClick={() => onSetWidth("half")}
               aria-label="Half width"
@@ -103,7 +103,7 @@ export function DashboardSectionShell({
             <Button
               type="button"
               size="sm"
-              variant={width === "full" ? "default" : "ghost"}
+              variant={width === "full" ? "toggle" : "ghost"}
               className="h-7 gap-1 px-2 text-xs"
               onClick={() => onSetWidth("full")}
               aria-label="Full width"

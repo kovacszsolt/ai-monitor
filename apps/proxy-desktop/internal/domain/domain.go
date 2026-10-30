@@ -19,6 +19,7 @@ const (
 	ProviderOpenAI           ProviderType = "openai"
 	ProviderAnthropic        ProviderType = "anthropic"
 	ProviderOpenAICompatible ProviderType = "openai-compatible"
+	ProviderBifrost          ProviderType = "bifrost"
 )
 
 type Provider struct {
@@ -39,7 +40,17 @@ type Protocol string
 const (
 	ProtocolOpenAIChat        Protocol = "openai_chat"
 	ProtocolOpenAIResponses   Protocol = "openai_responses"
+	ProtocolOpenAIImages      Protocol = "openai_images"
 	ProtocolAnthropicMessages Protocol = "anthropic_messages"
+)
+
+// Modality describes input→output media for a model route.
+type Modality string
+
+const (
+	ModalityTextText      Modality = "text-text"
+	ModalityTextImage     Modality = "text-image"
+	ModalityTextImageText Modality = "text_image-text"
 )
 
 type ModelRoute struct {
@@ -48,6 +59,7 @@ type ModelRoute struct {
 	ProviderID               string
 	UpstreamModelName        string
 	Protocol                 Protocol
+	Modality                 Modality
 	Enabled                  bool
 	InputTokenUSDPer1M       *float64
 	CachedInputTokenUSDPer1M *float64

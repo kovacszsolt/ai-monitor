@@ -72,7 +72,7 @@ export function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
             <Switch id="auto-db" checked={autoResolve} onCheckedChange={setAutoResolve} />
-            <Label htmlFor="auto-db">Auto-detect monorepo data/proxy.db</Label>
+            <Label htmlFor="auto-db">Default (~/.config/ai-proxy-manager/proxy.db)</Label>
           </div>
 
           {!autoResolve && (

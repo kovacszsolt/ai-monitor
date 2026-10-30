@@ -2,7 +2,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { service } from "../../../../wailsjs/go/models";
 
-const PROTOCOLS = ["openai_chat", "openai_responses", "anthropic_messages"] as const;
+const PROTOCOLS = ["openai_chat", "openai_responses", "openai_images", "anthropic_messages"] as const;
+export const MODEL_MODALITIES = ["text-text", "text-image", "text_image-text"] as const;
+export type ModelModality = (typeof MODEL_MODALITIES)[number];
 
 export type ModelRouteFormProps = {
   publicName?: string;
@@ -15,6 +17,8 @@ export type ModelRouteFormProps = {
   setUpstream: (v: string) => void;
   protocol: string;
   setProtocol: (v: string) => void;
+  modality: string;
+  setModality: (v: string) => void;
   inputUSD: string;
   setInputUSD: (v: string) => void;
   cachedUSD: string;
@@ -59,6 +63,21 @@ export function ModelRouteForm(props: ModelRouteFormProps) {
         >
           {PROTOCOLS.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
+      </div>
+      <div className="grid gap-2">
+        <Label>Modality</Label>
+        <select
+          className="h-9 rounded-md border border-border bg-card px-3 text-sm"
+          value={props.modality}
+          onChange={(e) => props.setModality(e.target.value)}
+        >
+          {MODEL_MODALITIES.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Input→output: text-text, text-image (generation), text_image-text (vision).
+        </p>
       </div>
       <p className="text-xs text-muted-foreground">Token pricing (optional, USD per 1M tokens). Leave blank if unknown.</p>
       <div className="grid grid-cols-3 gap-2">

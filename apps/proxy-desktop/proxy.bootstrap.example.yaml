@@ -3,7 +3,7 @@
 server:
   host: 127.0.0.1
   port: 8080
-  max_request_bytes: 10485760
+  max_request_bytes: 67108864
 
 storage:
   database_path: ./data/proxy.db
@@ -12,7 +12,7 @@ storage:
   synchronous: NORMAL
 
 logging:
-  # info: request routing + errors; debug: successful proxy API key auth
+  # info: request routing + errors; debug: proxy API key auth + full upstream request (headers/body) when provider returns 4xx/5xx
   level: info
   # console = colored terminal (tint); json = structured logs for Docker/aggregators
   format: console

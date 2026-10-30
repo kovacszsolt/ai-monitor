@@ -1,9 +1,13 @@
+import type { ChatImageAttachment } from "@/features/chat/chatImageAttachment";
+
 export type ChatRole = "user" | "assistant" | "system";
 
 export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
+  /** User attachments and/or assistant-generated images. */
+  images?: ChatImageAttachment[];
 };
 
 export const CHAT_REQUEST_TAG = "desktop-chat";

@@ -21,6 +21,7 @@ export function useModelRoutesPage() {
   const [providerID, setProviderID] = useState("");
   const [upstream, setUpstream] = useState("");
   const [protocol, setProtocol] = useState<string>("openai_chat");
+  const [modality, setModality] = useState<string>("text-text");
   const [inputUSD, setInputUSD] = useState("");
   const [cachedUSD, setCachedUSD] = useState("");
   const [outputUSD, setOutputUSD] = useState("");
@@ -76,6 +77,7 @@ export function useModelRoutesPage() {
         providerID,
         upstream.trim(),
         protocol,
+        modality,
         inputUSD.trim(),
         cachedUSD.trim(),
         outputUSD.trim(),
@@ -94,6 +96,7 @@ export function useModelRoutesPage() {
         edit!.id,
         upstream.trim(),
         protocol,
+        modality,
         inputUSD.trim(),
         cachedUSD.trim(),
         outputUSD.trim(),
@@ -116,6 +119,7 @@ export function useModelRoutesPage() {
     setEdit(m);
     setUpstream(m.upstream_model_name);
     setProtocol(m.protocol);
+    setModality(m.modality || "text-text");
     setInputUSD(priceInputValue(m.input_token_usd_per_1m));
     setCachedUSD(priceInputValue(m.cached_input_token_usd_per_1m));
     setOutputUSD(priceInputValue(m.output_token_usd_per_1m));
@@ -131,6 +135,8 @@ export function useModelRoutesPage() {
     setCreateOpen(true);
     setPublicName("");
     setUpstream("");
+    setProtocol("openai_chat");
+    setModality("text-text");
     resetPricingFields();
     setProviderID(providers?.[0]?.id ?? "");
   }
@@ -153,6 +159,8 @@ export function useModelRoutesPage() {
     setUpstream,
     protocol,
     setProtocol,
+    modality,
+    setModality,
     inputUSD,
     setInputUSD,
     cachedUSD,

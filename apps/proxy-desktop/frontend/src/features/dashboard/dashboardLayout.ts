@@ -61,7 +61,7 @@ const BREAKDOWN_SECTION_IDS: DashboardSectionId[] = [
 ];
 
 export const DASHBOARD_SECTION_LABELS: Record<DashboardSectionId, string> = {
-  [DASHBOARD_SECTION_IDS.usageByHour]: "Usage by hour",
+  [DASHBOARD_SECTION_IDS.usageByHour]: "Usage over time",
   [DASHBOARD_SECTION_IDS.usageByModel]: "Usage by model",
   [DASHBOARD_SECTION_IDS.statTotalRequests]: "Total requests",
   [DASHBOARD_SECTION_IDS.statRequests24h]: "Last 24 hours",

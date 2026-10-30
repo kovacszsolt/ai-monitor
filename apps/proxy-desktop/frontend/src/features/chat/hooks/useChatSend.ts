@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { sendChatCompletion } from "@/features/chat/api/chatApi";
+import type { ChatImageAttachment } from "@/features/chat/chatImageAttachment";
 import type { ChatMessage } from "@/features/chat/types";
 
 export type ChatSendConfig = {
@@ -19,9 +20,10 @@ export function useChatSend(config: ChatSendConfig) {
   }, []);
 
   const sendUserMessage = useCallback(
-    async (text: string) => {
+    async (text: string, images: ChatImageAttachment[] = []) => {
       const trimmed = text.trim();
-      if (!trimmed || sending) return;
+      const hasImages = images.length > 0;
+      if ((!trimmed && !hasImages) || sending) return;
 
       const { apiKeyId, modelRouteId, stream } = config;
       if (!apiKeyId || !modelRouteId) {
@@ -32,6 +34,7 @@ export function useChatSend(config: ChatSendConfig) {
         id: crypto.randomUUID(),
         role: "user",
         content: trimmed,
+        images: hasImages ? images : undefined,
       };
       const history = [...messages, userMsg];
       setMessages(history);
@@ -52,6 +55,7 @@ export function useChatSend(config: ChatSendConfig) {
           id: crypto.randomUUID(),
           role: "assistant",
           content: result.content,
+          images: result.images,
         };
         setMessages((prev) => [...prev, assistantMsg]);
       } finally {

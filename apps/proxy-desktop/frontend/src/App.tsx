@@ -22,6 +22,9 @@ const ProvidersPage = lazy(() =>
 const ModelsPage = lazy(() =>
   import("@/features/models/pages/ModelsPage").then((m) => ({ default: m.ModelsPage })),
 );
+const ImportModelsPage = lazy(() =>
+  import("@/features/models/pages/ImportModelsPage").then((m) => ({ default: m.ImportModelsPage })),
+);
 const ProxyPage = lazy(() =>
   import("@/features/proxy/pages/ProxyPage").then((m) => ({ default: m.ProxyPage })),
 );
@@ -36,6 +39,9 @@ const AboutPage = lazy(() =>
 );
 const ProxyVariablesPage = lazy(() =>
   import("@/features/settings/pages/ProxyVariablesPage").then((m) => ({ default: m.ProxyVariablesPage })),
+);
+const ClientErrorsPage = lazy(() =>
+  import("@/features/diagnostics/pages/ClientErrorsPage").then((m) => ({ default: m.ClientErrorsPage })),
 );
 
 function RouteFallback() {
@@ -88,6 +94,14 @@ function App() {
             }
           />
           <Route
+            path="/models/import"
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <ImportModelsPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="/models"
             element={
               <Suspense fallback={<RouteFallback />}>
@@ -116,6 +130,14 @@ function App() {
             element={
               <Suspense fallback={<RouteFallback />}>
                 <ProxyVariablesPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/errors"
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <ClientErrorsPage />
               </Suspense>
             }
           />
