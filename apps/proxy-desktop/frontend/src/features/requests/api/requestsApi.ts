@@ -9,6 +9,7 @@ export async function getDashboardStats() {
 export const REQUEST_SORT_COLUMNS = [
   "started",
   "project",
+  "api_key",
   "model",
   "tag",
   "state",
@@ -32,6 +33,7 @@ export type ListAIRequestsParams = {
   state?: string;
   tag?: string;
   model?: string;
+  apiKeyID?: string;
   sortBy?: RequestSortColumn;
   sortDesc?: boolean;
 };
@@ -43,6 +45,7 @@ export async function listAIRequests({
   state = "",
   tag = "",
   model = "",
+  apiKeyID = "",
   sortBy = "started",
   sortDesc = true,
 }: ListAIRequestsParams) {
@@ -54,9 +57,16 @@ export async function listAIRequests({
       state,
       tag,
       model,
+      apiKeyID,
       sortBy,
       sortDesc,
     )) as ApiResult<service.AIRequestListDTO>,
+  );
+}
+
+export async function listAIRequestAPIKeyOptions(projectID = "") {
+  return unwrap(
+    (await DesktopService.ListAIRequestAPIKeyOptions(projectID)) as ApiResult<ModelRouteFilterOption[]>,
   );
 }
 
@@ -99,9 +109,9 @@ export async function listAIRequestTagOptions() {
   );
 }
 
-export async function getModelUsageStats(tag = "", projectID = "") {
+export async function getModelUsageStats(tag = "", projectID = "", apiKeyID = "") {
   return unwrap(
-    (await DesktopService.GetModelUsageStats(tag, projectID)) as ApiResult<service.ModelUsageStatsDTO[]>,
+    (await DesktopService.GetModelUsageStats(tag, projectID, apiKeyID)) as ApiResult<service.ModelUsageStatsDTO[]>,
   );
 }
 
@@ -110,6 +120,7 @@ export const HOURLY_REQUEST_CHART_DAYS = 7;
 export async function getHourlyRequestCountByModel(
   tag = "",
   projectID = "",
+  apiKeyID = "",
   days = HOURLY_REQUEST_CHART_DAYS,
   rangeStart = "",
   rangeEnd = "",
@@ -119,6 +130,7 @@ export async function getHourlyRequestCountByModel(
     (await DesktopService.GetHourlyRequestCountByModel(
       tag,
       projectID,
+      apiKeyID,
       days,
       rangeStart,
       rangeEnd,

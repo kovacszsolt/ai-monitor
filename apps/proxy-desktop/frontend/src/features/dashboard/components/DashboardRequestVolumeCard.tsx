@@ -32,6 +32,8 @@ type Props = {
   onTagChange: (tag: string) => void;
   projectID: string;
   onProjectChange: (projectID: string) => void;
+  apiKeyID: string;
+  onApiKeyChange: (apiKeyID: string) => void;
   metric: HourlyChartMetric;
   onMetricChange: (metric: HourlyChartMetric) => void;
   bucket: HourlyChartBucketUnit;
@@ -49,6 +51,8 @@ export function DashboardRequestVolumeCard({
   onTagChange,
   projectID,
   onProjectChange,
+  apiKeyID,
+  onApiKeyChange,
   metric,
   onMetricChange,
   bucket,
@@ -85,6 +89,7 @@ export function DashboardRequestVolumeCard({
       "hourly-requests-by-model",
       tag,
       projectID,
+      apiKeyID,
       effectiveBucket,
       hourlyRangeQueryKeyPart(rangeMode, customRangeStart, customRangeEnd),
     ],
@@ -92,6 +97,7 @@ export function DashboardRequestVolumeCard({
       getHourlyRequestCountByModel(
         tag,
         projectID,
+        apiKeyID,
         requestParams.days,
         requestParams.rangeStart,
         requestParams.rangeEnd,
@@ -121,6 +127,8 @@ export function DashboardRequestVolumeCard({
             onTagChange={onTagChange}
             projectID={projectID}
             onProjectChange={onProjectChange}
+            apiKeyID={apiKeyID}
+            onApiKeyChange={onApiKeyChange}
             showTagFilter={tagEnabled}
           />
           <div className="flex flex-wrap gap-1 rounded-md border border-border p-0.5">

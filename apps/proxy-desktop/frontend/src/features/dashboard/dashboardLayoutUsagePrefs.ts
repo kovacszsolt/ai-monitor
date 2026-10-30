@@ -8,6 +8,7 @@ import {
 export type DashboardLayoutUsagePrefs = {
   tag: string;
   projectID: string;
+  apiKeyID: string;
   metric: HourlyChartMetric;
   bucket: HourlyChartBucketUnit;
   rangeMode: HourlyChartRangeMode;
@@ -27,6 +28,7 @@ export function defaultDashboardLayoutUsagePrefs(): DashboardLayoutUsagePrefs {
   return {
     tag: "",
     projectID: "",
+    apiKeyID: "",
     metric: "requests",
     bucket: "hour",
     rangeMode: 7,
@@ -57,6 +59,7 @@ export function normalizeDashboardLayoutUsagePrefs(raw: unknown): DashboardLayou
   return {
     tag: typeof o.tag === "string" ? o.tag : defaults.tag,
     projectID: typeof o.projectID === "string" ? o.projectID : defaults.projectID,
+    apiKeyID: typeof o.apiKeyID === "string" ? o.apiKeyID : defaults.apiKeyID,
     metric,
     bucket,
     rangeMode,

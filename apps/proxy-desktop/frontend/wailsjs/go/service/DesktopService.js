@@ -10,6 +10,10 @@ export function BulkSetAIRequestTag(arg1, arg2) {
   return window['go']['service']['DesktopService']['BulkSetAIRequestTag'](arg1, arg2);
 }
 
+export function ClearClientErrors() {
+  return window['go']['service']['DesktopService']['ClearClientErrors']();
+}
+
 export function CloseDB() {
   return window['go']['service']['DesktopService']['CloseDB']();
 }
@@ -22,8 +26,8 @@ export function CreateChatPinnedPrompt(arg1, arg2) {
   return window['go']['service']['DesktopService']['CreateChatPinnedPrompt'](arg1, arg2);
 }
 
-export function CreateModelRoute(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
-  return window['go']['service']['DesktopService']['CreateModelRoute'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+export function CreateModelRoute(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
+  return window['go']['service']['DesktopService']['CreateModelRoute'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
 }
 
 export function CreateProject(arg1, arg2) {
@@ -66,16 +70,16 @@ export function GetDashboardStats() {
   return window['go']['service']['DesktopService']['GetDashboardStats']();
 }
 
-export function GetHourlyRequestCountByModel(arg1, arg2, arg3, arg4, arg5, arg6) {
-  return window['go']['service']['DesktopService']['GetHourlyRequestCountByModel'](arg1, arg2, arg3, arg4, arg5, arg6);
+export function GetHourlyRequestCountByModel(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  return window['go']['service']['DesktopService']['GetHourlyRequestCountByModel'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }
 
 export function GetModelTokenUsageOverTime(arg1, arg2) {
   return window['go']['service']['DesktopService']['GetModelTokenUsageOverTime'](arg1, arg2);
 }
 
-export function GetModelUsageStats(arg1, arg2) {
-  return window['go']['service']['DesktopService']['GetModelUsageStats'](arg1, arg2);
+export function GetModelUsageStats(arg1, arg2, arg3) {
+  return window['go']['service']['DesktopService']['GetModelUsageStats'](arg1, arg2, arg3);
 }
 
 export function GetProject(arg1) {
@@ -94,6 +98,14 @@ export function GetStorageStats() {
   return window['go']['service']['DesktopService']['GetStorageStats']();
 }
 
+export function ImportModelRoutes(arg1, arg2, arg3) {
+  return window['go']['service']['DesktopService']['ImportModelRoutes'](arg1, arg2, arg3);
+}
+
+export function ListAIRequestAPIKeyOptions(arg1) {
+  return window['go']['service']['DesktopService']['ListAIRequestAPIKeyOptions'](arg1);
+}
+
 export function ListAIRequestModelOptions() {
   return window['go']['service']['DesktopService']['ListAIRequestModelOptions']();
 }
@@ -102,8 +114,8 @@ export function ListAIRequestTagOptions() {
   return window['go']['service']['DesktopService']['ListAIRequestTagOptions']();
 }
 
-export function ListAIRequests(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
-  return window['go']['service']['DesktopService']['ListAIRequests'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+export function ListAIRequests(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) {
+  return window['go']['service']['DesktopService']['ListAIRequests'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
 }
 
 export function ListAPIKeys(arg1) {
@@ -114,6 +126,10 @@ export function ListChatPinnedPrompts() {
   return window['go']['service']['DesktopService']['ListChatPinnedPrompts']();
 }
 
+export function ListClientErrors(arg1, arg2) {
+  return window['go']['service']['DesktopService']['ListClientErrors'](arg1, arg2);
+}
+
 export function ListModelRoutes() {
   return window['go']['service']['DesktopService']['ListModelRoutes']();
 }
@@ -122,8 +138,16 @@ export function ListProjects() {
   return window['go']['service']['DesktopService']['ListProjects']();
 }
 
+export function ListProviderUpstreamModels(arg1) {
+  return window['go']['service']['DesktopService']['ListProviderUpstreamModels'](arg1);
+}
+
 export function ListProviders() {
   return window['go']['service']['DesktopService']['ListProviders']();
+}
+
+export function LogClientError(arg1, arg2, arg3, arg4) {
+  return window['go']['service']['DesktopService']['LogClientError'](arg1, arg2, arg3, arg4);
 }
 
 export function PingDatabase() {
@@ -170,8 +194,8 @@ export function UpdateDatabasePath(arg1) {
   return window['go']['service']['DesktopService']['UpdateDatabasePath'](arg1);
 }
 
-export function UpdateModelRoute(arg1, arg2, arg3, arg4, arg5, arg6) {
-  return window['go']['service']['DesktopService']['UpdateModelRoute'](arg1, arg2, arg3, arg4, arg5, arg6);
+export function UpdateModelRoute(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  return window['go']['service']['DesktopService']['UpdateModelRoute'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }
 
 export function UpdateProject(arg1, arg2, arg3) {

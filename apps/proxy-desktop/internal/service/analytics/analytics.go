@@ -42,8 +42,8 @@ type HourlySeriesMeta struct {
 	RangeEnd   string
 }
 
-func (s *Service) HourlyRequestCountByModel(tag, projectID string, days int, rangeStart, rangeEnd, bucketUnit string) ([]HourlyModelPoint, HourlySeriesMeta, error) {
-	points, err := s.d.Requests.HourlyRequestCountByModel(s.d.Ctx(), tag, projectID, days, rangeStart, rangeEnd, bucketUnit)
+func (s *Service) HourlyRequestCountByModel(tag, projectID, apiKeyID string, days int, rangeStart, rangeEnd, bucketUnit string) ([]HourlyModelPoint, HourlySeriesMeta, error) {
+	points, err := s.d.Requests.HourlyRequestCountByModel(s.d.Ctx(), tag, projectID, apiKeyID, days, rangeStart, rangeEnd, bucketUnit)
 	if err != nil {
 		return nil, HourlySeriesMeta{}, err
 	}
@@ -79,8 +79,8 @@ func (s *Service) HourlyRequestCountByModel(tag, projectID string, days int, ran
 	return out, meta, nil
 }
 
-func (s *Service) ModelUsageStats(tag, projectID string) ([]domain.ModelUsageStats, error) {
-	items, err := s.d.Requests.ModelUsageStats(s.d.Ctx(), tag, projectID)
+func (s *Service) ModelUsageStats(tag, projectID, apiKeyID string) ([]domain.ModelUsageStats, error) {
+	items, err := s.d.Requests.ModelUsageStats(s.d.Ctx(), tag, projectID, apiKeyID)
 	if err != nil {
 		return nil, err
 	}

@@ -94,6 +94,7 @@ func (h *Handler) Register(mux interface {
 	mux.Post("/v1/chat/completions", h.chatCompletions)
 	mux.Post("/v1/responses", h.responses)
 	mux.Post("/v1/messages", h.messages)
+	mux.Post("/v1/images/generations", h.imagesGenerations)
 }
 
 func (h *Handler) live(w http.ResponseWriter, _ *http.Request) {
@@ -156,6 +157,10 @@ func (h *Handler) messages(w http.ResponseWriter, r *http.Request) {
 	h.forward(w, r, routing.ProtocolAnthropicMessages, "/v1/messages")
 }
 
+func (h *Handler) imagesGenerations(w http.ResponseWriter, r *http.Request) {
+	h.forward(w, r, routing.ProtocolOpenAIImages, "/v1/images/generations")
+}
+
 func (h *Handler) forward(w http.ResponseWriter, r *http.Request, expected routing.Protocol, endpoint string) {
 	started := time.Now()
 	reqID := middleware.GetReqID(r.Context())
@@ -168,13 +173,21 @@ func (h *Handler) forward(w http.ResponseWriter, r *http.Request, expected routi
 	body, err := readLimited(r.Body, h.svc.MaxBody)
 	if err != nil {
 		logProxyRequestError(ErrorSourceProxy, "read_body", "request_id", reqID, "err", err.Error())
-		writeProxyJSONError(w, http.StatusBadRequest, "invalid request body")
+		if errors.Is(err, errRequestBodyTooLarge) {
+			writeProxyJSONError(w, http.StatusRequestEntityTooLarge, err.Error())
+		} else {
+			writeProxyJSONError(w, http.StatusBadRequest, "invalid request body")
+		}
 		return
 	}
 	publicModel, stream, _, err := extractModel(body)
 	if err != nil {
 		logProxyRequestError(ErrorSourceProxy, "parse_model", "request_id", reqID, "err", err.Error())
-		writeProxyJSONError(w, http.StatusBadRequest, err.Error())
+		msg := err.Error()
+		if errors.Is(err, errInvalidJSONBody) {
+			msg = fmt.Sprintf("%s (body %d bytes; if near max_request_bytes, increase server.max_request_bytes)", err.Error(), len(body))
+		}
+		writeProxyJSONError(w, http.StatusBadRequest, msg)
 		return
 	}
 
@@ -452,6 +465,8 @@ func protocolEndpointHint(protocol routing.Protocol) string {
 		return "POST /v1/chat/completions"
 	case routing.ProtocolOpenAIResponses:
 		return "POST /v1/responses"
+	case routing.ProtocolOpenAIImages:
+		return "POST /v1/images/generations"
 	case routing.ProtocolAnthropicMessages:
 		return "POST /v1/messages"
 	default:
@@ -467,11 +482,26 @@ func (h *Handler) resolveRoute(ctx context.Context, key auth.APIKey, publicModel
 	if !rt.Enabled {
 		return routing.Route{}, providers.Provider{}, fmt.Errorf("model disabled")
 	}
-	if rt.Protocol != protocol {
-		return routing.Route{}, providers.Provider{}, fmt.Errorf(
-			"protocol mismatch for model %q: route protocol is %s but this endpoint expects %s (%s)",
-			publicModel, rt.Protocol, protocol, protocolEndpointHint(protocol),
-		)
+	if protocol == routing.ProtocolOpenAIImages {
+		if rt.Modality != routing.ModalityTextImage {
+			return routing.Route{}, providers.Provider{}, fmt.Errorf(
+				"model %q does not support image generation (set modality to text-image)",
+				publicModel,
+			)
+		}
+	} else {
+		if rt.Modality == routing.ModalityTextImage {
+			return routing.Route{}, providers.Provider{}, fmt.Errorf(
+				"model %q is image-generation only; use %s",
+				publicModel, protocolEndpointHint(routing.ProtocolOpenAIImages),
+			)
+		}
+		if rt.Protocol != protocol {
+			return routing.Route{}, providers.Provider{}, fmt.Errorf(
+				"protocol mismatch for model %q: route protocol is %s but this endpoint expects %s (%s)",
+				publicModel, rt.Protocol, protocol, protocolEndpointHint(protocol),
+			)
+		}
 	}
 	allowed, err := h.allowedRouteSet(ctx, key)
 	if err != nil {
@@ -575,10 +605,6 @@ func copyResponseHeaders(w http.ResponseWriter, src http.Header) {
 	}
 }
 
-func readLimited(r io.Reader, max int64) ([]byte, error) {
-	return io.ReadAll(io.LimitReader(r, max))
-}
-
 func writeProxyJSONError(w http.ResponseWriter, code int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-AI-Proxy-Error-Source", ErrorSourceProxy)
@@ -595,6 +621,9 @@ func ptrInt64(v int64) *int64 { return &v }
 
 func (h *Handler) extractPromptCapture(protocol routing.Protocol, body []byte, requestID string) (*capture.PromptCapture, []capture.CaptureError) {
 	if !h.svc.Capture.StoreContent {
+		return nil, nil
+	}
+	if int64(len(body)) > h.svc.Capture.MaxPromptBytes {
 		return nil, nil
 	}
 	p, err := content.ExtractRequest(protocol, body, h.svc.Capture.MaxPromptBytes)
@@ -641,8 +670,14 @@ func (h *Handler) attachRawUpstreamBody(rec *capture.Record, statusCode int, usa
 	var truncated bool
 	switch {
 	case stream && acc != nil:
+		if acc.RawSizeExceededLimit() {
+			return
+		}
 		raw, truncated = acc.RawBody()
 	case len(respBody) > 0:
+		if int64(len(respBody)) > h.svc.Capture.MaxResponseBytes {
+			return
+		}
 		raw, truncated = content.TruncateUTF8(string(respBody), h.svc.Capture.MaxResponseBytes)
 	default:
 		return
@@ -664,8 +699,14 @@ func (h *Handler) buildResponseCapture(protocol routing.Protocol, stream bool, a
 	var data content.ResponseData
 	switch {
 	case stream && acc != nil:
+		if acc.RawSizeExceededLimit() {
+			return nil
+		}
 		data = acc.Result()
 	case len(respBody) > 0:
+		if int64(len(respBody)) > h.svc.Capture.MaxResponseBytes {
+			return nil
+		}
 		data = content.ExtractResponse(protocol, respBody, h.svc.Capture.MaxResponseBytes)
 	default:
 		return nil

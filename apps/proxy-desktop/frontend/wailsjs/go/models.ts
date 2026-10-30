@@ -170,6 +170,8 @@ export namespace service {
 	    id: string;
 	    project_id: string;
 	    project_name: string;
+	    proxy_api_key_id: string;
+	    proxy_api_key_name: string;
 	    provider_id: string;
 	    provider_name: string;
 	    requested_model: string;
@@ -219,6 +221,8 @@ export namespace service {
 	        this.id = source["id"];
 	        this.project_id = source["project_id"];
 	        this.project_name = source["project_name"];
+	        this.proxy_api_key_id = source["proxy_api_key_id"];
+	        this.proxy_api_key_name = source["proxy_api_key_name"];
 	        this.provider_id = source["provider_id"];
 	        this.provider_name = source["provider_name"];
 	        this.requested_model = source["requested_model"];
@@ -404,9 +408,24 @@ export namespace service {
 	        this.updated = source["updated"];
 	    }
 	}
+	export class ChatImageAttachmentDTO {
+	    media_type: string;
+	    data: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ChatImageAttachmentDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.media_type = source["media_type"];
+	        this.data = source["data"];
+	    }
+	}
 	export class ChatMessageDTO {
 	    role: string;
 	    content: string;
+	    images?: ChatImageAttachmentDTO[];
 	
 	    static createFrom(source: any = {}) {
 	        return new ChatMessageDTO(source);
@@ -416,7 +435,26 @@ export namespace service {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.role = source["role"];
 	        this.content = source["content"];
+	        this.images = this.convertValues(source["images"], ChatImageAttachmentDTO);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class ChatCompletionInputDTO {
 	    api_key_id: string;
@@ -458,6 +496,7 @@ export namespace service {
 	}
 	export class ChatCompletionResultDTO {
 	    content: string;
+	    images?: ChatImageAttachmentDTO[];
 	
 	    static createFrom(source: any = {}) {
 	        return new ChatCompletionResultDTO(source);
@@ -466,8 +505,28 @@ export namespace service {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.content = source["content"];
+	        this.images = this.convertValues(source["images"], ChatImageAttachmentDTO);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
+	
 	
 	export class ChatPinnedPromptDTO {
 	    id: string;
@@ -488,6 +547,64 @@ export namespace service {
 	        this.created_at = source["created_at"];
 	        this.updated_at = source["updated_at"];
 	    }
+	}
+	export class ClientErrorLogEntryDTO {
+	    id: string;
+	    level: string;
+	    source: string;
+	    message: string;
+	    detail: string;
+	    created_at: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ClientErrorLogEntryDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.level = source["level"];
+	        this.source = source["source"];
+	        this.message = source["message"];
+	        this.detail = source["detail"];
+	        this.created_at = source["created_at"];
+	    }
+	}
+	export class ClientErrorLogListDTO {
+	    items: ClientErrorLogEntryDTO[];
+	    total: number;
+	    page: number;
+	    page_size: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ClientErrorLogListDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.items = this.convertValues(source["items"], ClientErrorLogEntryDTO);
+	        this.total = source["total"];
+	        this.page = source["page"];
+	        this.page_size = source["page_size"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class ConnectionInfoDTO {
 	    database_path: string;
@@ -751,6 +868,20 @@ export namespace service {
 		    return a;
 		}
 	}
+	export class ImportModelRoutesResultDTO {
+	    created: number;
+	    skipped: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ImportModelRoutesResultDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.created = source["created"];
+	        this.skipped = source["skipped"];
+	    }
+	}
 	export class ModelRouteDTO {
 	    id: string;
 	    public_model_name: string;
@@ -758,6 +889,7 @@ export namespace service {
 	    provider_name?: string;
 	    upstream_model_name: string;
 	    protocol: string;
+	    modality: string;
 	    enabled: boolean;
 	    input_token_usd_per_1m?: number;
 	    cached_input_token_usd_per_1m?: number;
@@ -777,6 +909,7 @@ export namespace service {
 	        this.provider_name = source["provider_name"];
 	        this.upstream_model_name = source["upstream_model_name"];
 	        this.protocol = source["protocol"];
+	        this.modality = source["modality"];
 	        this.enabled = source["enabled"];
 	        this.input_token_usd_per_1m = source["input_token_usd_per_1m"];
 	        this.cached_input_token_usd_per_1m = source["cached_input_token_usd_per_1m"];
@@ -1300,6 +1433,54 @@ export namespace service {
 		    return a;
 		}
 	}
+	export class UpstreamModelDTO {
+	    id: string;
+	    already_imported: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new UpstreamModelDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.already_imported = source["already_imported"];
+	    }
+	}
+	export class Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_UpstreamModelDTO_ {
+	    ok: boolean;
+	    data: UpstreamModelDTO[];
+	    error?: ErrorDTO;
+	
+	    static createFrom(source: any = {}) {
+	        return new Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_UpstreamModelDTO_(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ok = source["ok"];
+	        this.data = this.convertValues(source["data"], UpstreamModelDTO);
+	        this.error = this.convertValues(source["error"], ErrorDTO);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Result_bool_ {
 	    ok: boolean;
 	    data: boolean;
@@ -1572,6 +1753,74 @@ export namespace service {
 		    return a;
 		}
 	}
+	export class Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ClientErrorLogEntryDTO_ {
+	    ok: boolean;
+	    data: ClientErrorLogEntryDTO;
+	    error?: ErrorDTO;
+	
+	    static createFrom(source: any = {}) {
+	        return new Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ClientErrorLogEntryDTO_(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ok = source["ok"];
+	        this.data = this.convertValues(source["data"], ClientErrorLogEntryDTO);
+	        this.error = this.convertValues(source["error"], ErrorDTO);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ClientErrorLogListDTO_ {
+	    ok: boolean;
+	    data: ClientErrorLogListDTO;
+	    error?: ErrorDTO;
+	
+	    static createFrom(source: any = {}) {
+	        return new Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ClientErrorLogListDTO_(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ok = source["ok"];
+	        this.data = this.convertValues(source["data"], ClientErrorLogListDTO);
+	        this.error = this.convertValues(source["error"], ErrorDTO);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ConnectionInfoDTO_ {
 	    ok: boolean;
 	    data: ConnectionInfoDTO;
@@ -1721,6 +1970,40 @@ export namespace service {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.ok = source["ok"];
 	        this.data = this.convertValues(source["data"], HourlyModelRequestSeriesDTO);
+	        this.error = this.convertValues(source["error"], ErrorDTO);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ImportModelRoutesResultDTO_ {
+	    ok: boolean;
+	    data: ImportModelRoutesResultDTO;
+	    error?: ErrorDTO;
+	
+	    static createFrom(source: any = {}) {
+	        return new Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ImportModelRoutesResultDTO_(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ok = source["ok"];
+	        this.data = this.convertValues(source["data"], ImportModelRoutesResultDTO);
 	        this.error = this.convertValues(source["error"], ErrorDTO);
 	    }
 	
@@ -2223,6 +2506,7 @@ export namespace service {
 	        this.capture_max_response_bytes = source["capture_max_response_bytes"];
 	    }
 	}
+	
 
 }
 

@@ -1,5 +1,5 @@
 storage:
-  database_path: "" # empty = auto-resolve repo data/proxy.db
+  database_path: "" # empty = ~/.config/ai-proxy-manager/proxy.db (XDG_CONFIG_HOME)
   journal_mode: WAL
   busy_timeout_ms: 5000
   synchronous: NORMAL

@@ -6,6 +6,8 @@ type AIRequest struct {
 	ID              string
 	ProjectID       string
 	ProjectName     string
+	ProxyAPIKeyID   string
+	ProxyAPIKeyName string
 	ProviderID      string
 	ProviderName    string
 	RequestedModel  string

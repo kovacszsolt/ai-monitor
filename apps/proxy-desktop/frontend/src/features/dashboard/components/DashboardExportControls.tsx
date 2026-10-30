@@ -14,6 +14,7 @@ type Props = {
   layoutName: string;
   usagePrefs: DashboardLayoutUsagePrefs;
   projectLabel: string;
+  apiKeyLabel: string;
   tagLabel: string;
   onExportStart: () => void;
   onExportEnd: () => void;
@@ -24,6 +25,7 @@ export function DashboardExportControls({
   layoutName,
   usagePrefs,
   projectLabel,
+  apiKeyLabel,
   tagLabel,
   onExportStart,
   onExportEnd,
@@ -42,7 +44,7 @@ export function DashboardExportControls({
       const saved = await exportDashboard(root, format, {
         layoutName,
         exportedAtIso: new Date().toISOString(),
-        filterSummary: buildExportFilterSummary(usagePrefs, projectLabel, tagLabel),
+        filterSummary: buildExportFilterSummary(usagePrefs, projectLabel, apiKeyLabel, tagLabel),
       });
       if (saved === null) {
         toast.message("Export cancelled");

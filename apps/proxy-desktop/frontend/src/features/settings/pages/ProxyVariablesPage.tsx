@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getProxyVariables, updateProxyVariables } from "@/features/settings/api/settingsApi";
+import { ByteSizeInput } from "@/shared/components/ByteSizeInput";
 import { PageHeader } from "@/shared/components/PageHeader";
 import { PageShell } from "@/shared/components/PageShell";
 import { ErrorState, LoadingState } from "@/shared/components/PageStates";
@@ -15,13 +16,21 @@ import { service } from "../../../../wailsjs/go/models";
 const selectClass =
   "flex h-9 w-full rounded border border-outline-variant bg-surface-container px-space-md py-1 text-body-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 
+function SettingKey({ name }: { name: string }) {
+  return (
+    <p className="font-mono text-code-inline text-on-surface-variant">
+      <code>{name}</code>
+    </p>
+  );
+}
+
 export function ProxyVariablesPage() {
   const qc = useQueryClient();
   const proxyVarsQ = useQuery({ queryKey: ["settings", "proxy-variables"], queryFn: getProxyVariables });
 
   const [serverHost, setServerHost] = useState("");
   const [serverPort, setServerPort] = useState(8080);
-  const [serverMaxRequestBytes, setServerMaxRequestBytes] = useState(10 * 1024 * 1024);
+  const [serverMaxRequestBytes, setServerMaxRequestBytes] = useState(64 * 1024 * 1024);
   const [loggingLevel, setLoggingLevel] = useState("info");
   const [loggingFormat, setLoggingFormat] = useState("console");
   const [captureStoreContent, setCaptureStoreContent] = useState(false);
@@ -57,7 +66,8 @@ export function ProxyVariablesPage() {
     },
     onSuccess: () => {
       toast.success("Proxy settings saved");
-      qc.invalidateQueries({ queryKey: ["settings", "proxy-variables", "proxy-config"] });
+      qc.invalidateQueries({ queryKey: ["settings", "proxy-variables"] });
+      qc.invalidateQueries({ queryKey: ["proxy-variables"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -79,21 +89,22 @@ export function ProxyVariablesPage() {
         title="Runtime Vars"
         description={
           <>
-            Runtime server, logging, and capture — stored in SQLite{" "}
-            <code className="text-code-inline">settings</code>.
+            Proxy runtime settings in SQLite <code className="text-code-inline">settings</code>. Stop the proxy
+            before saving; restart it to apply.
           </>
         }
       />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Configuration</CardTitle>
-          <CardDescription>Stop the proxy before saving. Restart proxy after changes take effect.</CardDescription>
+          <CardTitle className="text-base">HTTP server</CardTitle>
+          <CardDescription>Listen address and maximum accepted request body size (chat, API clients).</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="server-host">Server host</Label>
+              <Label htmlFor="server-host">Host</Label>
+              <SettingKey name="server.host" />
               <Input
                 id="server-host"
                 value={serverHost}
@@ -102,7 +113,8 @@ export function ProxyVariablesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="server-port">Server port</Label>
+              <Label htmlFor="server-port">Port</Label>
+              <SettingKey name="server.port" />
               <Input
                 id="server-port"
                 type="number"
@@ -113,74 +125,111 @@ export function ProxyVariablesPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="max-request">Max request bytes</Label>
-            <Input
+            <Label htmlFor="max-request">Max request body size</Label>
+            <SettingKey name="server.max_request_bytes" />
+            <ByteSizeInput
               id="max-request"
-              type="number"
               value={serverMaxRequestBytes}
-              onChange={(e) => setServerMaxRequestBytes(Number(e.target.value))}
+              onChange={setServerMaxRequestBytes}
             />
+            <p className="text-body-sm text-on-surface-variant">
+              Requests larger than this are rejected. Vision chat often needs 64 MiB or more.
+            </p>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="log-level">Logging level</Label>
-              <select
-                id="log-level"
-                className={selectClass}
-                value={loggingLevel}
-                onChange={(e) => setLoggingLevel(e.target.value)}
-              >
-                <option value="debug">debug</option>
-                <option value="info">info</option>
-                <option value="warn">warn</option>
-                <option value="error">error</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="log-format">Logging format</Label>
-              <select
-                id="log-format"
-                className={selectClass}
-                value={loggingFormat}
-                onChange={(e) => setLoggingFormat(e.target.value)}
-              >
-                <option value="console">console</option>
-                <option value="json">json</option>
-              </select>
-            </div>
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="text-base">Logging</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="log-level">Level</Label>
+            <SettingKey name="logging.level" />
+            <select
+              id="log-level"
+              className={selectClass}
+              value={loggingLevel}
+              onChange={(e) => setLoggingLevel(e.target.value)}
+            >
+              <option value="debug">debug</option>
+              <option value="info">info</option>
+              <option value="warn">warn</option>
+              <option value="error">error</option>
+            </select>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="log-format">Format</Label>
+            <SettingKey name="logging.format" />
+            <select
+              id="log-format"
+              className={selectClass}
+              value={loggingFormat}
+              onChange={(e) => setLoggingFormat(e.target.value)}
+            >
+              <option value="console">console</option>
+              <option value="json">json</option>
+            </select>
+          </div>
+        </CardContent>
+      </Card>
 
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="text-base">Request capture</CardTitle>
+          <CardDescription>
+            Metadata (timings, tokens, model) is always recorded when enabled. Content fields below apply only when
+            storing prompt/response bodies.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="capture-mode">Capture mode</Label>
+            <SettingKey name="capture.mode" />
             <Input id="capture-mode" value={pv.capture_mode} disabled className="font-mono text-xs" />
           </div>
 
           <div className="flex items-center gap-2">
             <Switch id="store-content" checked={captureStoreContent} onCheckedChange={setCaptureStoreContent} />
-            <Label htmlFor="store-content">Store prompt/response content</Label>
+            <div>
+              <Label htmlFor="store-content">Store prompt and response content</Label>
+              <SettingKey name="capture.store_content" />
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="max-prompt">Max prompt bytes</Label>
-              <Input
+              <Label htmlFor="max-prompt">Do not store request body when larger than</Label>
+              <SettingKey name="capture.max_prompt_bytes" />
+              <ByteSizeInput
                 id="max-prompt"
-                type="number"
+                disabled={!captureStoreContent}
                 value={captureMaxPromptBytes}
-                onChange={(e) => setCaptureMaxPromptBytes(Number(e.target.value))}
+                onChange={setCaptureMaxPromptBytes}
               />
+              <p className="text-body-sm text-on-surface-variant">
+                Above this size, prompt/messages are omitted from the DB (request row metadata remains).
+              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="max-response">Max response bytes</Label>
-              <Input
+              <Label htmlFor="max-response">Do not store response body when larger than</Label>
+              <SettingKey name="capture.max_response_bytes" />
+              <ByteSizeInput
                 id="max-response"
-                type="number"
+                disabled={!captureStoreContent}
                 value={captureMaxResponseBytes}
-                onChange={(e) => setCaptureMaxResponseBytes(Number(e.target.value))}
+                onChange={setCaptureMaxResponseBytes}
               />
+              <p className="text-body-sm text-on-surface-variant">
+                Above this size, assistant text / tool output is not persisted.
+              </p>
             </div>
           </div>
+
+          <p className="text-body-sm text-on-surface-variant">
+            Both capture limits must be ≤ <code className="text-code-inline">server.max_request_bytes</code>.
+          </p>
 
           <Button type="button" disabled={saveMut.isPending} onClick={() => saveMut.mutate()}>
             Save proxy settings

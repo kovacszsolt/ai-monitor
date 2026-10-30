@@ -91,10 +91,10 @@ func (s *DesktopService) ListModelRoutes() Result[[]ModelRouteDTO] {
 }
 
 func (s *DesktopService) CreateModelRoute(
-	publicModelName, providerID, upstreamModelName, protocol string,
+	publicModelName, providerID, upstreamModelName, protocol, modality string,
 	inputTokenUSDPer1M, cachedInputTokenUSDPer1M, outputTokenUSDPer1M string,
 ) Result[ModelRouteDTO] {
-	r, pname, err := s.catalog.CreateModelRoute(publicModelName, providerID, upstreamModelName, protocol, inputTokenUSDPer1M, cachedInputTokenUSDPer1M, outputTokenUSDPer1M)
+	r, pname, err := s.catalog.CreateModelRoute(publicModelName, providerID, upstreamModelName, protocol, modality, inputTokenUSDPer1M, cachedInputTokenUSDPer1M, outputTokenUSDPer1M)
 	if err != nil {
 		return fail[ModelRouteDTO](err)
 	}
@@ -102,10 +102,10 @@ func (s *DesktopService) CreateModelRoute(
 }
 
 func (s *DesktopService) UpdateModelRoute(
-	id, upstreamModelName, protocol string,
+	id, upstreamModelName, protocol, modality string,
 	inputTokenUSDPer1M, cachedInputTokenUSDPer1M, outputTokenUSDPer1M string,
 ) Result[ModelRouteDTO] {
-	r, pname, err := s.catalog.UpdateModelRoute(id, upstreamModelName, protocol, inputTokenUSDPer1M, cachedInputTokenUSDPer1M, outputTokenUSDPer1M)
+	r, pname, err := s.catalog.UpdateModelRoute(id, upstreamModelName, protocol, modality, inputTokenUSDPer1M, cachedInputTokenUSDPer1M, outputTokenUSDPer1M)
 	if err != nil {
 		return fail[ModelRouteDTO](err)
 	}
@@ -117,6 +117,32 @@ func (s *DesktopService) SetModelRouteEnabled(id string, enabled bool) Result[bo
 		return fail[bool](err)
 	}
 	return ok(true)
+}
+
+func (s *DesktopService) ListProviderUpstreamModels(providerID string) Result[[]UpstreamModelDTO] {
+	items, err := s.catalog.ListProviderUpstreamModels(providerID)
+	if err != nil {
+		return fail[[]UpstreamModelDTO](err)
+	}
+	out := make([]UpstreamModelDTO, 0, len(items))
+	for _, m := range items {
+		out = append(out, UpstreamModelDTO{
+			ID:              m.ID,
+			AlreadyImported: m.AlreadyImported,
+		})
+	}
+	return ok(out)
+}
+
+func (s *DesktopService) ImportModelRoutes(providerID string, upstreamIDs []string, publicNamePrefix string) Result[ImportModelRoutesResultDTO] {
+	res, err := s.catalog.ImportModelRoutes(providerID, upstreamIDs, publicNamePrefix)
+	if err != nil {
+		return fail[ImportModelRoutesResultDTO](err)
+	}
+	return ok(ImportModelRoutesResultDTO{
+		Created: res.Created,
+		Skipped: res.Skipped,
+	})
 }
 
 func (s *DesktopService) ListAPIKeys(projectID string) Result[[]APIKeyDTO] {

@@ -1,6 +1,8 @@
 package catalog
 
 import (
+	"fmt"
+
 	"github.com/kovacszso/ai-monitor/apps/proxy-desktop/internal/domain"
 	"github.com/kovacszso/ai-monitor/apps/proxy-desktop/internal/proxyengine/pkg/providers"
 	"github.com/kovacszso/ai-monitor/apps/proxy-desktop/internal/proxyengine/pkg/routing"
@@ -104,19 +106,23 @@ func (s *Service) ListModelRoutes() ([]domain.ModelRoute, map[string]string, err
 }
 
 func (s *Service) CreateModelRoute(
-	publicModelName, providerID, upstreamModelName, protocol string,
+	publicModelName, providerID, upstreamModelName, protocol, modality string,
 	inputTokenUSDPer1M, cachedInputTokenUSDPer1M, outputTokenUSDPer1M string,
 ) (domain.ModelRoute, string, error) {
+	parsedModality, err := parseModality(modality)
+	if err != nil {
+		return domain.ModelRoute{}, "", err
+	}
 	inputUSD, cachedUSD, outputUSD, err := pricing.ParseModelRouteTokenPricing(inputTokenUSDPer1M, cachedInputTokenUSDPer1M, outputTokenUSDPer1M)
 	if err != nil {
 		return domain.ModelRoute{}, "", err
 	}
-	r, err := s.d.Routes.Add(s.d.Ctx(), publicModelName, providerID, upstreamModelName, routing.Protocol(protocol))
+	r, err := s.d.Routes.Add(s.d.Ctx(), publicModelName, providerID, upstreamModelName, routing.Protocol(protocol), parsedModality)
 	if err != nil {
 		return domain.ModelRoute{}, "", storeerr.Map(err)
 	}
 	if inputUSD != nil || cachedUSD != nil || outputUSD != nil {
-		r, err = s.d.Routes.Update(s.d.Ctx(), r.ID, upstreamModelName, routing.Protocol(protocol), inputUSD, cachedUSD, outputUSD)
+		r, err = s.d.Routes.Update(s.d.Ctx(), r.ID, upstreamModelName, routing.Protocol(protocol), parsedModality, inputUSD, cachedUSD, outputUSD)
 		if err != nil {
 			return domain.ModelRoute{}, "", storeerr.Map(err)
 		}
@@ -125,18 +131,34 @@ func (s *Service) CreateModelRoute(
 }
 
 func (s *Service) UpdateModelRoute(
-	id, upstreamModelName, protocol string,
+	id, upstreamModelName, protocol, modality string,
 	inputTokenUSDPer1M, cachedInputTokenUSDPer1M, outputTokenUSDPer1M string,
 ) (domain.ModelRoute, string, error) {
+	parsedModality, err := parseModality(modality)
+	if err != nil {
+		return domain.ModelRoute{}, "", err
+	}
 	inputUSD, cachedUSD, outputUSD, err := pricing.ParseModelRouteTokenPricing(inputTokenUSDPer1M, cachedInputTokenUSDPer1M, outputTokenUSDPer1M)
 	if err != nil {
 		return domain.ModelRoute{}, "", err
 	}
-	r, err := s.d.Routes.Update(s.d.Ctx(), id, upstreamModelName, routing.Protocol(protocol), inputUSD, cachedUSD, outputUSD)
+	r, err := s.d.Routes.Update(s.d.Ctx(), id, upstreamModelName, routing.Protocol(protocol), parsedModality, inputUSD, cachedUSD, outputUSD)
 	if err != nil {
 		return domain.ModelRoute{}, "", storeerr.Map(err)
 	}
 	return storemaps.ModelRoute(r), providerName(s.d, r.ProviderID), nil
+}
+
+func parseModality(v string) (routing.Modality, error) {
+	if v == "" {
+		return routing.ModalityTextText, nil
+	}
+	switch routing.Modality(v) {
+	case routing.ModalityTextText, routing.ModalityTextImage, routing.ModalityTextImageText:
+		return routing.Modality(v), nil
+	default:
+		return "", fmt.Errorf("invalid modality %q (expected text-text, text-image, or text_image-text)", v)
+	}
 }
 
 func (s *Service) SetModelRouteEnabled(id string, enabled bool) error {

@@ -2,6 +2,7 @@ import { Pin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/features/chat/types";
+import { chatImageDataUrl } from "@/features/chat/chatImageAttachment";
 
 type Props = {
   messages: ChatMessage[];
@@ -32,7 +33,17 @@ export function ChatMessageList({ messages, streamingContent, sending, onPinUser
           )}
         >
           <div className="flex items-start justify-between gap-2">
-            <span className="min-w-0 flex-1">{m.content}</span>
+            <div className="min-w-0 flex-1 space-y-2">
+              {(m.images ?? []).map((img, idx) => (
+                <img
+                  key={`${m.id}-img-${idx}`}
+                  src={chatImageDataUrl(img)}
+                  alt=""
+                  className="max-h-48 max-w-full rounded-md border border-border/40 object-contain"
+                />
+              ))}
+              {m.content.trim() ? <span className="block whitespace-pre-wrap">{m.content}</span> : null}
+            </div>
             {m.role === "user" && onPinUserMessage && (
               <Button
                 type="button"

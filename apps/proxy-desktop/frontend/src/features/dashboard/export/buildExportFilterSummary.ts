@@ -6,6 +6,7 @@ import { formatHourlyChartRangeLabel } from "@/features/dashboard/components/hou
 export function buildExportFilterSummary(
   usagePrefs: DashboardLayoutUsagePrefs,
   projectLabel: string,
+  apiKeyLabel: string,
   tagLabel: string,
 ): string {
   const metricLabel =
@@ -16,7 +17,8 @@ export function buildExportFilterSummary(
     usagePrefs.customRangeEnd,
   );
   const project = projectLabel || "All projects";
+  const apiKey = apiKeyLabel || "All API keys";
   const tag = tagLabel || "All tags";
   const bucketLabel = hourlyChartBucketLabel(usagePrefs.bucket);
-  return `Layout filters: project ${project} · tag ${tag} · ${bucketLabel} · metric ${metricLabel} · ${rangeLabel}`;
+  return `Layout filters: project ${project} · API key ${apiKey} · tag ${tag} · ${bucketLabel} · metric ${metricLabel} · ${rangeLabel}`;
 }

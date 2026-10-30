@@ -5,12 +5,19 @@ export type ModelSortColumn =
   | "provider"
   | "upstream"
   | "protocol"
+  | "modality"
   | "inputUSD"
   | "cachedUSD"
   | "outputUSD"
   | "enabled";
 
-export const TEXT_SORT_COLUMNS = new Set<ModelSortColumn>(["publicName", "provider", "upstream", "protocol"]);
+export const TEXT_SORT_COLUMNS = new Set<ModelSortColumn>([
+  "publicName",
+  "provider",
+  "upstream",
+  "protocol",
+  "modality",
+]);
 
 function compareNullableNumber(a?: number, b?: number): number {
   const aMissing = a === undefined || a === null || Number.isNaN(a);
@@ -49,6 +56,9 @@ export function sortModelRoutes(
         break;
       case "protocol":
         cmp = a.protocol.localeCompare(b.protocol);
+        break;
+      case "modality":
+        cmp = (a.modality || "text-text").localeCompare(b.modality || "text-text");
         break;
       case "inputUSD":
         cmp = compareNullableNumber(a.input_token_usd_per_1m, b.input_token_usd_per_1m);

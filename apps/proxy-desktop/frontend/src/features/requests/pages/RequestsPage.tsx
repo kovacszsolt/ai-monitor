@@ -27,6 +27,7 @@ const REQUEST_TABLE_COLUMNS: Record<string, number> = {
   select: 40,
   started: 152,
   project: 108,
+  api_key: 120,
   model: 128,
   tag: 100,
   state: 104,
@@ -71,6 +72,8 @@ export function RequestsPage() {
     setTag,
     model,
     setModel,
+    apiKeyID,
+    setApiKeyID,
     expandedId,
     setExpandedId,
     deletingId,
@@ -84,6 +87,7 @@ export function RequestsPage() {
     tagOptionsQ,
     tagBulkEnabled,
     modelOptionsQ,
+    apiKeyOptionsQ,
     listQ,
     sortDirection,
     toggleSort,
@@ -166,6 +170,22 @@ export function RequestsPage() {
                 Errors only
               </Button>
             </div>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            API key
+            <select
+              className="h-9 min-w-[180px] max-w-[280px] rounded-md border border-border bg-card px-3 text-sm text-foreground"
+              value={apiKeyID}
+              onChange={(e) => {
+                setApiKeyID(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All API keys</option>
+              {(apiKeyOptionsQ.options ?? []).map((k) => (
+                <option key={k.id} value={k.id}>{k.name}</option>
+              ))}
+            </select>
           </label>
           <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             Model
@@ -291,6 +311,15 @@ export function RequestsPage() {
                       onSortClick={() => toggleSort("project")}
                     >
                       Project
+                    </ResizableTableHead>
+                    <ResizableTableHead
+                      width={colWidths.api_key}
+                      onResizeStart={resizeCol("api_key")}
+                      sortable
+                      sortDirection={sortDirection("api_key")}
+                      onSortClick={() => toggleSort("api_key")}
+                    >
+                      API key
                     </ResizableTableHead>
                     <ResizableTableHead
                       width={colWidths.model}
@@ -464,6 +493,13 @@ export function RequestsPage() {
                             style={resizableCellStyle(colWidths.project)}
                           >
                             {r.project_name || r.project_id}
+                          </TableCell>
+                          <TableCell
+                            className="truncate px-2 text-xs"
+                            style={resizableCellStyle(colWidths.api_key)}
+                            title={r.proxy_api_key_id || undefined}
+                          >
+                            {r.proxy_api_key_name?.trim() ? r.proxy_api_key_name : "—"}
                           </TableCell>
                           <TableCell
                             className="truncate px-2 font-mono text-xs"

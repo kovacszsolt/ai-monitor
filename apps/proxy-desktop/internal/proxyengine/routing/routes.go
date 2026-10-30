@@ -17,7 +17,16 @@ type Protocol string
 const (
 	ProtocolOpenAIChat        Protocol = "openai_chat"
 	ProtocolOpenAIResponses   Protocol = "openai_responses"
+	ProtocolOpenAIImages      Protocol = "openai_images"
 	ProtocolAnthropicMessages Protocol = "anthropic_messages"
+)
+
+type Modality string
+
+const (
+	ModalityTextText      Modality = "text-text"
+	ModalityTextImage     Modality = "text-image"
+	ModalityTextImageText Modality = "text_image-text"
 )
 
 type Route struct {
@@ -26,6 +35,7 @@ type Route struct {
 	ProviderID               string
 	UpstreamModelName        string
 	Protocol                 Protocol
+	Modality                 Modality
 	Enabled                  bool
 	InputTokenUSDPer1M       *float64
 	CachedInputTokenUSDPer1M *float64
@@ -42,25 +52,29 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) Add(ctx context.Context, public, providerID, upstream string, protocol Protocol) (Route, error) {
+func (s *Store) Add(ctx context.Context, public, providerID, upstream string, protocol Protocol, modality Modality) (Route, error) {
 	now := time.Now().UTC()
+	if modality == "" {
+		modality = ModalityTextText
+	}
 	r := Route{
 		ID:                uuid.NewString(),
 		PublicModelName:   public,
 		ProviderID:        providerID,
 		UpstreamModelName: upstream,
 		Protocol:          protocol,
+		Modality:          modality,
 		Enabled:           true,
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO model_routes (
-			id, public_model_name, provider_id, upstream_model_name, protocol, enabled,
+			id, public_model_name, provider_id, upstream_model_name, protocol, modality, enabled,
 			input_token_usd_per_1m, cached_input_token_usd_per_1m, output_token_usd_per_1m,
 			created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
-		r.ID, r.PublicModelName, r.ProviderID, r.UpstreamModelName, string(r.Protocol),
+		VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+		r.ID, r.PublicModelName, r.ProviderID, r.UpstreamModelName, string(r.Protocol), string(r.Modality),
 		nullFloatArg(r.InputTokenUSDPer1M), nullFloatArg(r.CachedInputTokenUSDPer1M), nullFloatArg(r.OutputTokenUSDPer1M),
 		now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
 	if err != nil {
@@ -71,7 +85,7 @@ func (s *Store) Add(ctx context.Context, public, providerID, upstream string, pr
 
 func (s *Store) GetByPublicModel(ctx context.Context, public string) (Route, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT id, public_model_name, provider_id, upstream_model_name, protocol, enabled,
+		SELECT id, public_model_name, provider_id, upstream_model_name, protocol, modality, enabled,
 			input_token_usd_per_1m, cached_input_token_usd_per_1m, output_token_usd_per_1m,
 			created_at, updated_at
 		FROM model_routes WHERE public_model_name = ?`, public)
@@ -80,7 +94,7 @@ func (s *Store) GetByPublicModel(ctx context.Context, public string) (Route, err
 
 func (s *Store) Get(ctx context.Context, id string) (Route, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT id, public_model_name, provider_id, upstream_model_name, protocol, enabled,
+		SELECT id, public_model_name, provider_id, upstream_model_name, protocol, modality, enabled,
 			input_token_usd_per_1m, cached_input_token_usd_per_1m, output_token_usd_per_1m,
 			created_at, updated_at
 		FROM model_routes WHERE id = ?`, id)
@@ -89,7 +103,7 @@ func (s *Store) Get(ctx context.Context, id string) (Route, error) {
 
 func (s *Store) List(ctx context.Context) ([]Route, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, public_model_name, provider_id, upstream_model_name, protocol, enabled,
+		SELECT id, public_model_name, provider_id, upstream_model_name, protocol, modality, enabled,
 			input_token_usd_per_1m, cached_input_token_usd_per_1m, output_token_usd_per_1m,
 			created_at, updated_at
 		FROM model_routes ORDER BY public_model_name`)
@@ -108,15 +122,18 @@ func (s *Store) List(ctx context.Context) ([]Route, error) {
 	return out, rows.Err()
 }
 
-func (s *Store) Update(ctx context.Context, id, upstream string, protocol Protocol, inputUSDPer1M, cachedUSDPer1M, outputUSDPer1M *float64) (Route, error) {
+func (s *Store) Update(ctx context.Context, id, upstream string, protocol Protocol, modality Modality, inputUSDPer1M, cachedUSDPer1M, outputUSDPer1M *float64) (Route, error) {
 	now := time.Now().UTC()
+	if modality == "" {
+		modality = ModalityTextText
+	}
 	res, err := s.db.ExecContext(ctx, `
 		UPDATE model_routes SET
-			upstream_model_name = ?, protocol = ?,
+			upstream_model_name = ?, protocol = ?, modality = ?,
 			input_token_usd_per_1m = ?, cached_input_token_usd_per_1m = ?, output_token_usd_per_1m = ?,
 			updated_at = ?
 		WHERE id = ?`,
-		upstream, string(protocol),
+		upstream, string(protocol), string(modality),
 		nullFloatArg(inputUSDPer1M), nullFloatArg(cachedUSDPer1M), nullFloatArg(outputUSDPer1M),
 		now.Format(time.RFC3339Nano), id)
 	if err != nil {
@@ -144,17 +161,18 @@ func (s *Store) SetEnabled(ctx context.Context, id string, enabled bool) error {
 
 func scanRoute(rows *sql.Rows) (Route, error) {
 	var r Route
-	var protocol string
+	var protocol, modality string
 	var enabled int
 	var inputUSD, cachedUSD, outputUSD sql.NullFloat64
 	var created, updated string
 	if err := rows.Scan(
-		&r.ID, &r.PublicModelName, &r.ProviderID, &r.UpstreamModelName, &protocol, &enabled,
+		&r.ID, &r.PublicModelName, &r.ProviderID, &r.UpstreamModelName, &protocol, &modality, &enabled,
 		&inputUSD, &cachedUSD, &outputUSD, &created, &updated,
 	); err != nil {
 		return Route{}, err
 	}
 	r.Protocol = Protocol(protocol)
+	r.Modality = normalizeModality(modality)
 	r.Enabled = enabled == 1
 	r.InputTokenUSDPer1M = nullFloatPtr(inputUSD)
 	r.CachedInputTokenUSDPer1M = nullFloatPtr(cachedUSD)
@@ -166,12 +184,12 @@ func scanRoute(rows *sql.Rows) (Route, error) {
 
 func scanRouteRow(row *sql.Row) (Route, error) {
 	var r Route
-	var protocol string
+	var protocol, modality string
 	var enabled int
 	var inputUSD, cachedUSD, outputUSD sql.NullFloat64
 	var created, updated string
 	if err := row.Scan(
-		&r.ID, &r.PublicModelName, &r.ProviderID, &r.UpstreamModelName, &protocol, &enabled,
+		&r.ID, &r.PublicModelName, &r.ProviderID, &r.UpstreamModelName, &protocol, &modality, &enabled,
 		&inputUSD, &cachedUSD, &outputUSD, &created, &updated,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -180,6 +198,7 @@ func scanRouteRow(row *sql.Row) (Route, error) {
 		return Route{}, err
 	}
 	r.Protocol = Protocol(protocol)
+	r.Modality = normalizeModality(modality)
 	r.Enabled = enabled == 1
 	r.InputTokenUSDPer1M = nullFloatPtr(inputUSD)
 	r.CachedInputTokenUSDPer1M = nullFloatPtr(cachedUSD)
@@ -187,6 +206,15 @@ func scanRouteRow(row *sql.Row) (Route, error) {
 	r.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
 	r.UpdatedAt, _ = time.Parse(time.RFC3339Nano, updated)
 	return r, nil
+}
+
+func normalizeModality(v string) Modality {
+	switch Modality(v) {
+	case ModalityTextText, ModalityTextImage, ModalityTextImageText:
+		return Modality(v)
+	default:
+		return ModalityTextText
+	}
 }
 
 func nullFloatArg(v *float64) any {

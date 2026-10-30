@@ -1,29 +1,36 @@
 package config
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
 
-func TestFindProxyDBFrom(t *testing.T) {
-	dir := t.TempDir()
-	dbPath := filepath.Join(dir, "data", "proxy.db")
-	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
+func TestResolveDefaultDatabasePath(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "")
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	got, err := ResolveDefaultDatabasePath()
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(dbPath, []byte("sqlite"), 0o644); err != nil {
+	want := filepath.Join(home, ".config", "ai-proxy-manager", "proxy.db")
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestResolveDefaultDatabasePath_XDGConfigHome(t *testing.T) {
+	base := filepath.Join(t.TempDir(), "xdg-config")
+	t.Setenv("XDG_CONFIG_HOME", base)
+	t.Setenv("HOME", t.TempDir())
+
+	got, err := ResolveDefaultDatabasePath()
+	if err != nil {
 		t.Fatal(err)
 	}
-	sub := filepath.Join(dir, "apps", "proxy", "desktop")
-	if err := os.MkdirAll(sub, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	found, ok := findProxyDBFrom(sub)
-	if !ok {
-		t.Fatal("expected to find proxy.db")
-	}
-	if found != dbPath {
-		t.Fatalf("got %q want %q", found, dbPath)
+	want := filepath.Join(base, "ai-proxy-manager", "proxy.db")
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
 	}
 }

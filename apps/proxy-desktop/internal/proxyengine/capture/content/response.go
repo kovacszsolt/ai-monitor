@@ -2,6 +2,7 @@ package content
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -26,9 +27,43 @@ func ExtractResponse(protocol routing.Protocol, body []byte, maxBytes int64) Res
 		return extractAnthropicResponse(body, maxBytes)
 	case routing.ProtocolOpenAIResponses:
 		return extractOpenAIResponsesResponse(body, maxBytes)
+	case routing.ProtocolOpenAIImages:
+		return extractOpenAIImagesResponse(body, maxBytes)
 	default:
 		return extractOpenAIResponse(body, maxBytes)
 	}
+}
+
+func extractOpenAIImagesResponse(body []byte, maxBytes int64) ResponseData {
+	var v map[string]interface{}
+	if err := json.Unmarshal(body, &v); err != nil {
+		return ResponseData{}
+	}
+	data, ok := v["data"].([]interface{})
+	if !ok || len(data) == 0 {
+		return ResponseData{}
+	}
+	var parts []string
+	for i, item := range data {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if revised, ok := m["revised_prompt"].(string); ok && strings.TrimSpace(revised) != "" {
+			parts = append(parts, revised)
+			continue
+		}
+		if _, hasB64 := m["b64_json"].(string); hasB64 {
+			parts = append(parts, fmt.Sprintf("[generated image %d]", i+1))
+			continue
+		}
+		if url, ok := m["url"].(string); ok && url != "" {
+			parts = append(parts, url)
+		}
+	}
+	text := strings.Join(parts, "\n")
+	text, trunc := TruncateUTF8(text, maxBytes)
+	return ResponseData{AssistantText: text, ResponseTruncated: trunc}
 }
 
 func extractOpenAIResponsesResponse(body []byte, maxBytes int64) ResponseData {
@@ -284,6 +319,11 @@ func (a *StreamAccumulator) Result() ResponseData {
 // RawBody returns a truncated copy of streamed upstream lines for debugging.
 func (a *StreamAccumulator) RawBody() (string, bool) {
 	return a.rawBuf.String(), a.rawTruncated
+}
+
+// RawSizeExceededLimit reports whether the upstream stream body exceeded the configured cap.
+func (a *StreamAccumulator) RawSizeExceededLimit() bool {
+	return a.rawTruncated
 }
 
 func (a *StreamAccumulator) appendRawLine(line string) {

@@ -83,6 +83,15 @@ func (r *Runtime) Status() Status {
 	return st
 }
 
+func (r *Runtime) MaxRequestBytes() int64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.app == nil {
+		return 0
+	}
+	return r.cfg.Server.MaxRequestBytes
+}
+
 // WriterStats returns capture writer queue metrics when the proxy is running.
 func (r *Runtime) WriterStats() (inserted, dropped int64, queueLen int, ok bool) {
 	r.mu.Lock()

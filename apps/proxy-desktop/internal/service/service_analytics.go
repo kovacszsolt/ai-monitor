@@ -26,8 +26,8 @@ func (s *DesktopService) GetModelTokenUsageOverTime(tag string, days int) Result
 	return ok(out)
 }
 
-func (s *DesktopService) GetHourlyRequestCountByModel(tag, projectID string, days int, rangeStart, rangeEnd, bucketUnit string) Result[HourlyModelRequestSeriesDTO] {
-	points, meta, err := s.analytics.HourlyRequestCountByModel(tag, projectID, days, rangeStart, rangeEnd, bucketUnit)
+func (s *DesktopService) GetHourlyRequestCountByModel(tag, projectID, apiKeyID string, days int, rangeStart, rangeEnd, bucketUnit string) Result[HourlyModelRequestSeriesDTO] {
+	points, meta, err := s.analytics.HourlyRequestCountByModel(tag, projectID, apiKeyID, days, rangeStart, rangeEnd, bucketUnit)
 	if err != nil {
 		return fail[HourlyModelRequestSeriesDTO](err)
 	}
@@ -59,8 +59,8 @@ func (s *DesktopService) GetHourlyRequestCountByModel(tag, projectID string, day
 	return ok(out)
 }
 
-func (s *DesktopService) GetModelUsageStats(tag, projectID string) Result[[]ModelUsageStatsDTO] {
-	items, err := s.analytics.ModelUsageStats(tag, projectID)
+func (s *DesktopService) GetModelUsageStats(tag, projectID, apiKeyID string) Result[[]ModelUsageStatsDTO] {
+	items, err := s.analytics.ModelUsageStats(tag, projectID, apiKeyID)
 	if err != nil {
 		return fail[[]ModelUsageStatsDTO](err)
 	}
@@ -127,6 +127,18 @@ func (s *DesktopService) ListAIRequestModelOptions() Result[[]ModelRouteFilterOp
 	return ok(out)
 }
 
+func (s *DesktopService) ListAIRequestAPIKeyOptions(projectID string) Result[[]ModelRouteFilterOptionDTO] {
+	opts, err := s.airequests.ListAPIKeyFilterOptions(projectID)
+	if err != nil {
+		return fail[[]ModelRouteFilterOptionDTO](err)
+	}
+	out := make([]ModelRouteFilterOptionDTO, 0, len(opts))
+	for _, o := range opts {
+		out = append(out, ModelRouteFilterOptionDTO{ID: o.ID, Name: o.Name})
+	}
+	return ok(out)
+}
+
 func (s *DesktopService) GetAIRequestContent(id string) Result[AIRequestContentDTO] {
 	content, err := s.airequests.GetRequestContent(id)
 	if err != nil {
@@ -135,8 +147,8 @@ func (s *DesktopService) GetAIRequestContent(id string) Result[AIRequestContentD
 	return ok(mapAIRequestContent(content))
 }
 
-func (s *DesktopService) ListAIRequests(page, pageSize int, projectID, state, tag, model, sortBy string, sortDesc bool) Result[AIRequestListDTO] {
-	res, err := s.airequests.List(page, pageSize, projectID, state, tag, model, sortBy, sortDesc)
+func (s *DesktopService) ListAIRequests(page, pageSize int, projectID, state, tag, model, apiKeyID, sortBy string, sortDesc bool) Result[AIRequestListDTO] {
+	res, err := s.airequests.List(page, pageSize, projectID, state, tag, model, apiKeyID, sortBy, sortDesc)
 	if err != nil {
 		return fail[AIRequestListDTO](err)
 	}

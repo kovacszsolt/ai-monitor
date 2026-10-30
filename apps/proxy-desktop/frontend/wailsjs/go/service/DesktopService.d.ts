@@ -7,13 +7,15 @@ export function BulkDeleteAIRequests(arg1:Array<string>):Promise<service.Result_
 
 export function BulkSetAIRequestTag(arg1:Array<string>,arg2:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_BulkSetAIRequestTagResultDTO_>;
 
+export function ClearClientErrors():Promise<service.Result_bool_>;
+
 export function CloseDB():Promise<void>;
 
 export function CreateAPIKey(arg1:string,arg2:string,arg3:boolean):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_CreateAPIKeyResultDTO_>;
 
 export function CreateChatPinnedPrompt(arg1:string,arg2:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ChatPinnedPromptDTO_>;
 
-export function CreateModelRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string,arg7:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelRouteDTO_>;
+export function CreateModelRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string,arg7:string,arg8:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelRouteDTO_>;
 
 export function CreateProject(arg1:string,arg2:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ProjectDTO_>;
 
@@ -35,11 +37,11 @@ export function GetConnectionInfo():Promise<service.ConnectionInfoDTO>;
 
 export function GetDashboardStats():Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_DashboardStatsDTO_>;
 
-export function GetHourlyRequestCountByModel(arg1:string,arg2:string,arg3:number,arg4:string,arg5:string,arg6:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_HourlyModelRequestSeriesDTO_>;
+export function GetHourlyRequestCountByModel(arg1:string,arg2:string,arg3:string,arg4:number,arg5:string,arg6:string,arg7:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_HourlyModelRequestSeriesDTO_>;
 
 export function GetModelTokenUsageOverTime(arg1:string,arg2:number):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelTokenTimeSeriesDTO_>;
 
-export function GetModelUsageStats(arg1:string,arg2:string):Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelUsageStatsDTO_>;
+export function GetModelUsageStats(arg1:string,arg2:string,arg3:string):Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelUsageStatsDTO_>;
 
 export function GetProject(arg1:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ProjectDTO_>;
 
@@ -49,21 +51,31 @@ export function GetSettings():Promise<service.Result_github_com_kovacszso_ai_mon
 
 export function GetStorageStats():Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_StorageStatsDTO_>;
 
+export function ImportModelRoutes(arg1:string,arg2:Array<string>,arg3:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ImportModelRoutesResultDTO_>;
+
+export function ListAIRequestAPIKeyOptions(arg1:string):Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelRouteFilterOptionDTO_>;
+
 export function ListAIRequestModelOptions():Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelRouteFilterOptionDTO_>;
 
 export function ListAIRequestTagOptions():Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_AIRequestTagOptionsDTO_>;
 
-export function ListAIRequests(arg1:number,arg2:number,arg3:string,arg4:string,arg5:string,arg6:string,arg7:string,arg8:boolean):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_AIRequestListDTO_>;
+export function ListAIRequests(arg1:number,arg2:number,arg3:string,arg4:string,arg5:string,arg6:string,arg7:string,arg8:string,arg9:boolean):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_AIRequestListDTO_>;
 
 export function ListAPIKeys(arg1:string):Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_APIKeyDTO_>;
 
 export function ListChatPinnedPrompts():Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ChatPinnedPromptDTO_>;
 
+export function ListClientErrors(arg1:number,arg2:number):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ClientErrorLogListDTO_>;
+
 export function ListModelRoutes():Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelRouteDTO_>;
 
 export function ListProjects():Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ProjectDTO_>;
 
+export function ListProviderUpstreamModels(arg1:string):Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_UpstreamModelDTO_>;
+
 export function ListProviders():Promise<service.Result___github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ProviderDTO_>;
+
+export function LogClientError(arg1:string,arg2:string,arg3:string,arg4:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ClientErrorLogEntryDTO_>;
 
 export function PingDatabase():Promise<service.Result_bool_>;
 
@@ -87,7 +99,7 @@ export function SetWailsContext(arg1:context.Context):Promise<void>;
 
 export function UpdateDatabasePath(arg1:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ConnectionInfoDTO_>;
 
-export function UpdateModelRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelRouteDTO_>;
+export function UpdateModelRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string,arg7:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ModelRouteDTO_>;
 
 export function UpdateProject(arg1:string,arg2:string,arg3:string):Promise<service.Result_github_com_kovacszso_ai_monitor_apps_proxy_desktop_internal_service_ProjectDTO_>;
 

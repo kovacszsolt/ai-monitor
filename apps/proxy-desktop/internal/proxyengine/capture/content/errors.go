@@ -13,6 +13,8 @@ func PromptErrorCode(err error) string {
 		return "invalid_json"
 	case strings.Contains(msg, "messages missing"):
 		return "messages_missing"
+	case strings.Contains(msg, "prompt missing"):
+		return "prompt_missing"
 	case strings.Contains(msg, "input missing"):
 		return "input_missing"
 	default:

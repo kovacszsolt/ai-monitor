@@ -15,6 +15,7 @@ import { DashboardSectionShell } from "@/features/dashboard/components/Dashboard
 import {
   ModelTokenUsageByTagChart,
   ModelUsageByTagSection,
+  useModelApiKeyLabel,
   useModelTagLabel,
 } from "@/features/dashboard/components/ModelUsageByTagSection";
 import { UsageGroupTable } from "@/features/dashboard/components/UsageGroupTable";
@@ -87,7 +88,9 @@ export function DashboardPage() {
   } = useDashboardLayout();
   const selectedTag = usagePrefs.tag;
   const selectedProjectID = usagePrefs.projectID;
+  const selectedApiKeyID = usagePrefs.apiKeyID;
   const tagLabel = useModelTagLabel(selectedTag);
+  const apiKeyLabel = useModelApiKeyLabel(selectedApiKeyID, selectedProjectID);
   const projectsQ = useQuery({ queryKey: ["projects"], queryFn: listProjects });
   const projectLabel =
     selectedProjectID === ""
@@ -110,6 +113,8 @@ export function DashboardPage() {
               onTagChange={(tag) => updateUsagePrefs({ tag })}
               projectID={selectedProjectID}
               onProjectChange={(projectID) => updateUsagePrefs({ projectID })}
+              apiKeyID={selectedApiKeyID}
+              onApiKeyChange={(apiKeyID) => updateUsagePrefs({ apiKeyID })}
               metric={usagePrefs.metric}
               onMetricChange={(metric) => updateUsagePrefs({ metric })}
               bucket={usagePrefs.bucket}
@@ -129,6 +134,8 @@ export function DashboardPage() {
               onTagChange={(tag) => updateUsagePrefs({ tag })}
               projectID={selectedProjectID}
               onProjectChange={(projectID) => updateUsagePrefs({ projectID })}
+              apiKeyID={selectedApiKeyID}
+              onApiKeyChange={(apiKeyID) => updateUsagePrefs({ apiKeyID })}
               hideFilters
             />
           );
@@ -192,6 +199,7 @@ export function DashboardPage() {
               tag={selectedTag}
               tagLabel={tagLabel}
               projectID={selectedProjectID}
+              apiKeyID={selectedApiKeyID}
             />
           );
         case DASHBOARD_SECTION_IDS.byState:
@@ -229,7 +237,7 @@ export function DashboardPage() {
           return null;
       }
     },
-    [data, selectedTag, selectedProjectID, tagLabel, usagePrefs, updateUsagePrefs],
+    [data, selectedTag, selectedProjectID, selectedApiKeyID, tagLabel, usagePrefs, updateUsagePrefs],
   );
 
   if (isLoading) return <LoadingState label="Loading dashboard…" />;
@@ -261,6 +269,7 @@ export function DashboardPage() {
             usagePrefs={usagePrefs}
             projectLabel={projectLabel}
             tagLabel={tagLabel}
+            apiKeyLabel={apiKeyLabel}
             onExportStart={() => setExporting(true)}
             onExportEnd={() => setExporting(false)}
           />
@@ -312,7 +321,7 @@ export function DashboardPage() {
         <div className="space-y-1">
           <p className="text-lg font-semibold tracking-tight">Dashboard — {activePresetName}</p>
           <p className="text-sm text-muted-foreground">
-            {projectLabel || "All projects"} · {tagLabel || "All tags"}
+            {projectLabel || "All projects"} · {apiKeyLabel || "All API keys"} · {tagLabel || "All tags"}
           </p>
         </div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">

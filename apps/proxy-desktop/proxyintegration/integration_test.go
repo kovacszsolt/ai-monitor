@@ -65,7 +65,7 @@ func TestE2EChatCompletion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = dbApp.Routes.Add(context.Background(), "qwen-local", prov.ID, "Qwen3.8-27B-8bit", routing.ProtocolOpenAIChat)
+	_, err = dbApp.Routes.Add(context.Background(), "qwen-local", prov.ID, "Qwen3.8-27B-8bit", routing.ProtocolOpenAIChat, routing.ModalityTextText)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestE2ERequestTag(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = dbApp.Routes.Add(context.Background(), "tag-model", prov.ID, "upstream", routing.ProtocolOpenAIChat)
+	_, err = dbApp.Routes.Add(context.Background(), "tag-model", prov.ID, "upstream", routing.ProtocolOpenAIChat, routing.ModalityTextText)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +255,7 @@ func TestE2EInFlightProgress(t *testing.T) {
 	p, _ := dbApp.Projects.Create(context.Background(), "prog", "")
 	_, apiKey, _ := dbApp.Keys.Create(context.Background(), p.ID, "dev", true, nil)
 	prov, _ := dbApp.Providers.Add(context.Background(), "local", providers.TypeOpenAICompatible, mock.URL, "", 5000, 30000)
-	_, _ = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat)
+	_, _ = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat, routing.ModalityTextText)
 
 	h := proxy.NewHandler(proxy.Services{
 		Keys: dbApp.Keys, Providers: dbApp.Providers, Routes: dbApp.Routes,
@@ -330,7 +330,7 @@ func TestE2EPromptCaptureError(t *testing.T) {
 	p, _ := dbApp.Projects.Create(context.Background(), "err-proj", "")
 	_, apiKey, _ := dbApp.Keys.Create(context.Background(), p.ID, "dev", true, nil)
 	prov, _ := dbApp.Providers.Add(context.Background(), "local", providers.TypeOpenAICompatible, mock.URL, "", 5000, 30000)
-	_, _ = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat)
+	_, _ = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat, routing.ModalityTextText)
 
 	h := proxy.NewHandler(proxy.Services{
 		Keys: dbApp.Keys, Providers: dbApp.Providers, Routes: dbApp.Routes,
@@ -406,7 +406,7 @@ func TestE2EGzipUpstreamBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat)
+	_, err = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat, routing.ModalityTextText)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -485,7 +485,7 @@ func TestE2EHTTPFileDump(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat)
+	_, err = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat, routing.ModalityTextText)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -559,7 +559,7 @@ func TestE2ERawBodyOnParseError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat)
+	_, err = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat, routing.ModalityTextText)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -633,7 +633,7 @@ func TestE2EStoreContent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat)
+	_, err = dbApp.Routes.Add(context.Background(), "m1", prov.ID, "upstream", routing.ProtocolOpenAIChat, routing.ModalityTextText)
 	if err != nil {
 		t.Fatal(err)
 	}
